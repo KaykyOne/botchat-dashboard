@@ -73,7 +73,7 @@ export default function Siderbar({ leads, setMensagens, setLead, setModalOpen })
       animate={{ opacity: 1, width: '100%' }}
       transition={{ delay: 1 * 0.1 }}
       className='flex flex-col gap-2 bg-background max-w-[400px] h-full p-6 shadow-2xl'>
-      <div className='flex gap-2 w-full h-fit items-center text-center opacity-55 justify-between'>
+      <div className='flex gap-2 w-full h-fit items-center text-center justify-between'>
         <h1 className='text-xl'>NovusTech</h1>
         <div className='flex gap-5 justify-center items-center'>
           <button className='hover:scale-110 transition-all duration-300 cursor-pointer'>
@@ -118,8 +118,8 @@ export default function Siderbar({ leads, setMensagens, setLead, setModalOpen })
         />
 
 
-        <details className="flex flex-col gap-4 opacity-70 has-hover:opacity-100 transition-all duration-300 cursor-pointer text-neutral-500">
-          <summary>Filtros</summary>
+        <details className="flex flex-col gap-4 transition-all duration-300 cursor-pointer text-neutral-500">
+          <summary className="opacity-70 hover:opacity-100">Filtros</summary>
           <div className="flex flex-wrap gap-2 text-sm">
             <button
               onClick={() => setFiltro(0)}

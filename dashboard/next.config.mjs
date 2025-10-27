@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
-  basePath: '/f-botchat-dashboard-app',
-  assetPrefix: '/f-botchat-dashboard-app',
+  basePath: '/n-botchat-dashboard-app',
+  assetPrefix: '/n-botchat-dashboard-app',
   images: {
     unoptimized: true,
   },

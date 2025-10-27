@@ -5,6 +5,7 @@ const KEY = process.env.KEY
 const apiKey = process.env.SUPABASE;
 const apiURL = process.env.APIURL;
 import fs from 'fs/promises';
+import { spawn } from 'child_process';
 
 const supabase = createClient(apiURL, apiKey);
 
@@ -49,7 +50,6 @@ async function pegarConfigs() {
     .from('configuracoes')
     .select('configs')
     .eq('id', 1);
-
   if (error) {
     console.log('Erro ao buscar configurações:', error);
     return null;
@@ -60,6 +60,20 @@ async function pegarConfigs() {
   } else {
     return null;
   }
+}
+
+async function atualizarConfigs(novasConfigs) {
+  const { data, error } = await supabase
+    .from('configuracoes')
+    .update({ configs: novasConfigs })
+    .eq('id', 1);
+
+  if (error) {
+    console.log('Erro ao atualizar configurações:', error);
+    return null;
+  }
+
+  return data;
 }
 
 async function atualizarLeadsFrias() {
@@ -235,7 +249,7 @@ async function realtimeSupabase(funct) {
         const data = payload.new
 
         if (!data || !data.numero) {
-          console.error('Payload inválido:', payload)
+          console.error('Payload inválido:', data)
           return
         }
 
@@ -252,6 +266,14 @@ async function realtimeSupabase(funct) {
     .subscribe()
 }
 
+function reiniciarProcesso() {
+  console.log('♻️ Reiniciando o bot...');
+  spawn(process.argv[0], process.argv.slice(1), {
+    stdio: 'inherit' // mantém os logs
+  });
+  process.exit(0); // encerra o atual
+}
+
 async function deleteFolder(folderPath) {
   try {
     await fs.rm(folderPath, { recursive: true, force: true });
@@ -261,5 +283,34 @@ async function deleteFolder(folderPath) {
   }
 }
 
+async function escutarQrCode(client) {
+  console.log('Escutando atualizações de QR Code no Supabase...');
+  supabase
+    .channel('public:configuracoes')
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'configuracoes' },
+      async (payload) => {
+        const data = payload.new.configs.qrCode;
+        console.log('Atualização recebida para configurações:', data);
+        if (!payload.new) {
+          console.error('Payload inválido:', data);
+          return
+        }
+        if (data == '') {
+          console.log('Iniciando limpeza de pastas de autenticação...');
+          await client.destroy(); // encerra o browser do puppeteer
+          await new Promise(res => setTimeout(res, 5000)); // espera meio segundo
+          await deleteFolder('.wwebjs_auth');
+          await deleteFolder('.wwebjs_cache');
+          client.initialize(); // reinicia o cliente
+          console.clear();
+          console.log('Bot reiniciado para novo login!');
+        }
+      }
+    )
+    .subscribe()
+}
 
-export { responderPergunta, pegarLeads, atualizarLeadsFrias, realtimeSupabase, deleteFolder };
+
+export { responderPergunta, pegarLeads, atualizarLeadsFrias, realtimeSupabase, deleteFolder, escutarQrCode, atualizarConfigs, pegarConfigs };

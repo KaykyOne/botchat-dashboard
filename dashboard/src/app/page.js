@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useEffect, use } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { login } from '@/hooks/useLogin'
@@ -13,6 +13,7 @@ export default function Page() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [saveDados, setSalvarDados] = useState(false);
 
   async function handleClick() {
     if (!email || !password) {
@@ -27,6 +28,7 @@ export default function Page() {
         setLoading(false);
         return;
       } else {
+        salvarDados();
         router.push('/dashboard');
         return;
       }
@@ -38,6 +40,21 @@ export default function Page() {
 
   }
 
+  function salvarDados() {
+    if ((!email || !password) && !saveDados) return;
+    localStorage.setItem('email', email);
+    localStorage.setItem('senha', password);
+  }
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('email');
+    const savedPassword = localStorage.getItem('senha');
+    if (savedEmail && savedPassword) {
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setSalvarDados(true);
+    }
+  }, []);
 
   return (
     <div className='flex lg:overflow-hidden items-center justify-center w-screen h-screen'>
@@ -65,6 +82,10 @@ export default function Page() {
               {showPassword ? 'visibility_off' : 'visibility'}
             </span>
           </button>
+        </div>
+        <div className='flex items-center justify-center gap-2'>
+          <input id='checkbox' className='cursor-pointer' name='checkbox' checked={saveDados} type='checkbox' onChange={(e => setSalvarDados(e.target.checked))} />
+          <label htmlFor='checkbox' className='cursor-pointer'>Salvar dados</label>
         </div>
         <button className='button group' onClick={handleClick} disabled={loading}>
           {!loading ? (

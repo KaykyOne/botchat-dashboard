@@ -14,7 +14,7 @@ async function atualizarConfiguracoes(configuracoes) {
         console.error(error);
         return null;
     }
-    
+
     return;
 }
 
@@ -31,4 +31,23 @@ async function buscarConfiguracoes() {
     }
     return data
 }
-export { atualizarConfiguracoes, buscarConfiguracoes };
+
+const escutarQrCode = (onUpdate) => {
+//   console.log('🔍 Escutando mudanças via Realtime...')
+
+  const channel = supabase
+    .channel('configuracoes-realtime')
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'configuracoes' },
+      async (payload) => {
+        console.log('🟣 Atualização detectada:', payload)
+        await onUpdate()
+      }
+    )
+    .subscribe((status) => console.log('📡 Canal status:', status))
+
+  return channel
+}
+
+export { atualizarConfiguracoes, buscarConfiguracoes, escutarQrCode, supabase };

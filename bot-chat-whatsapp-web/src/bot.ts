@@ -7,7 +7,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { responderPergunta, realtimeSupabase } from './funcoes';
+import { responderPergunta, realtimeSupabase, escutarQrCode, pegarConfigs, atualizarConfigs } from './funcoes';
 
 const URL = process.env.URL;
 
@@ -71,8 +71,20 @@ async function enviarMensagem(texto, numero) {
     await client.sendMessage(numero, texto);
 }
 
+async function atualizarQrCode(qr) {
+    const res = await pegarConfigs();
+    const configs = res || {};
+    configs.qrCode = qr;
+    await atualizarConfigs(configs);
+}
+
+const testTentativasDeReconexao = (a: number) => {a > 5 &&  process.exit(0); return; }
+
 // Inicializa o bot
 function startBot() {
+
+    let tentativasDeReconexao: number = 0;
+    
     client = new Client({
         authStrategy: new LocalAuth(),
         puppeteer: {
@@ -81,19 +93,26 @@ function startBot() {
         }
     });
 
-    client.on('qr', qr => {
+    client.on('qr', async qr => {
+        await atualizarQrCode(qr);
         console.log('Aguardando conexão!');
         qrCode = qr;
     });
 
-    client.on('ready', () => console.log('✅ Bot conectado!'));
+    client.on('ready', () => {
+        console.log('✅ Bot conectado!');
+    });
 
     client.on('disconnected', reason => {
+        tentativasDeReconexao++;
+        testTentativasDeReconexao(tentativasDeReconexao);
         console.log('❌ Bot desconectado. Tentando reconectar...', reason);
         setTimeout(startBot, 5000);
     });
 
     client.on('auth_failure', () => {
+        tentativasDeReconexao++;
+        testTentativasDeReconexao(tentativasDeReconexao);
         console.log('⚠️ Falha na autenticação. Reiniciando bot...');
         setTimeout(startBot, 5000);
     });
@@ -135,10 +154,7 @@ function startBot() {
         }
     });
 
-    // Conecta ao realtime Supabase
-    realtimeSupabase(enviarMensagem);
-
     client.initialize();
 }
 
-export { startBot, qrCode }
+export { startBot, qrCode, client, enviarMensagem }
