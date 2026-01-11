@@ -46,14 +46,14 @@ a:hover {
 
 body {
   background: var(--background);
-  background-image: url('/back.svg');
+  background-image: url('/n-botchat-dashboard-app/back.svg');
   background-attachment: fixed;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .input {
-  @apply bg-neutral-800 text-neutral-300 p-2 pl-3 pr-3 rounded-lg shadow-2xl transition-all duration-300 focus:outline-none w-full;
+  @apply bg-neutral-800 text-neutral-300 p-2 pl-3 pr-3 rounded-lg shadow-2xl transition-all duration-300 focus:outline-none w-full !pl-11 !py-3 sm:!py-4 text-sm sm:text-base;
   box-shadow: 0 0 0 0 transparent;
 }
 
@@ -62,7 +62,7 @@ body {
 }
 
 .button {
-  @apply w-full text-[#E29ACD] p-3 rounded-full text-2xl font-bold flex gap-2 justify-center cursor-pointer transition duration-300;
+  @apply w-full text-[#E29ACD] p-3 flex justify-center items-center gap-3 rounded-lg text-2xl font-bold flex gap-2 justify-center cursor-pointer transition duration-300;
   background: linear-gradient(to left, var(--primary), var(--secundary));
 }
 

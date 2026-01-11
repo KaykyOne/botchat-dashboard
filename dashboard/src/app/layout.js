@@ -1,6 +1,7 @@
 // app/layout.js
 import { Geist, Geist_Mono, Oswald } from "next/font/google"
 import "./globals.css"
+import { ToastContainer } from "react-toastify"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} antialiased`}
       >
         {children}
+        <ToastContainer theme="colored"/>
       </body>
     </html>
   )
