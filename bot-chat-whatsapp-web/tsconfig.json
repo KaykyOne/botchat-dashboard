@@ -1,13 +1,9 @@
 {
-    "compilerOptions": {
-        "allowJs": true,
-        "checkJs": false,
-        "esModuleInterop": true,
-        "moduleResolution": "node",
-        "module": "commonjs",
-        "target": "es2020",
-    },
-    "exclude": [
-        "node_modules"
-    ]
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "target": "ES2023",
+    "strict": true,
+    "esModuleInterop": true,
+  }
 }

@@ -1,26 +1,22 @@
 // ES Modules
-import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth } = pkg;
-import express from 'express';
-// import qrcode from 'qrcode-terminal';
-import axios from 'axios';
+import pkg, { Client, Message } from 'whatsapp-web.js';
+import QrCodeTerminal from 'qrcode-terminal';
+const { LocalAuth } = pkg;
 import dotenv from 'dotenv';
 dotenv.config();
+import Funcoes from './funcoes';
 
-import { responderPergunta, realtimeSupabase, escutarQrCode, pegarConfigs, atualizarConfigs } from './funcoes';
-
-const URL = process.env.URL;
-
-const mensagensPendentes = {};
-const timeouts = {};
+const mensagensPendentes: { [key: string]: string } = {};
+const timeouts: { [key: string]: NodeJS.Timeout } = {};
 const TEMPO_ESPERA = 2000;
 
-let client;
-let qrCode;
+const clients: Record<number, Client> = {};
+const qrCodes: Record<number, string> = {};
 
+const funcoes = Funcoes();
 
 // Junta mensagens do mesmo número
-function juntarMensagens(numero, texto) {
+function juntarMensagens(numero: string, texto: string) {
     mensagensPendentes[numero] = mensagensPendentes[numero]
         ? mensagensPendentes[numero] + '\n' + texto
         : texto;
@@ -28,82 +24,45 @@ function juntarMensagens(numero, texto) {
     if (timeouts[numero]) clearTimeout(timeouts[numero]);
 }
 
-// Verifica se o usuário é aluno ou superadm
-async function verificarAluno(telefone) {
-    const telefoneFinal = telefone.split('@')[0].slice(2);
-
-    try {
-        const res = await axios.get(`${URL}/usuario/buscarPorTel`, {
-            params: { telefone: telefoneFinal }
-        });
-
-        const resultado = res.data.result || [];
-
-        if (!resultado || resultado === 'cliente') return false;
-
-        if (resultado.tipo_usuario === 'aluno') {
-            return { mensagem: `E ai tudo bem ${resultado.nome}, no que posso ajudar?`, usuario: resultado };
-        } else if (resultado.tipo_usuario === 'superadm') {
-            return { mensagem: `As ordens senhor ${resultado.nome}! no que posso ajudar?`, usuario: resultado };
-        }
-
-    } catch (err) {
-        console.error('Erro ao verificar aluno:', err);
-    }
-
-    return false;
-}
-
-// Resolve número de LID para contato real
-async function resolverNumero(lidId) {
-    try {
-        const contact = await client.getContactById(lidId);
-        if (contact && contact.id) return contact.id._serialized; // ex: '5517997565378@c.us'
-    } catch (err) {
-        console.error('Erro ao tentar resolver LID:', err);
-    }
-    return null;
-}
-
-// Envia mensagem para número
-async function enviarMensagem(texto, numero) {
-    await new Promise(r => setTimeout(r, 1500));
-    await client.sendMessage(numero, texto);
-}
-
-async function atualizarQrCode(qr) {
-    const res = await pegarConfigs();
-    const configs = res || {};
-    configs.qrCode = qr;
-    await atualizarConfigs(configs);
-}
-
-const testTentativasDeReconexao = (a: number) => {a > 5 &&  process.exit(0); return; }
+const testTentativasDeReconexao = (a: number) => { a > 5 && process.exit(0); return; }
 
 // Inicializa o bot
-function startBot() {
+function startBot(usuario_id: number) {
+    console.log(`Iniciando bot para o usuário ${usuario_id}`);
+
+    if (clients[usuario_id]) {
+        console.log(`Bot do usuário ${usuario_id} já está rodando`);
+        return;
+    }
 
     let tentativasDeReconexao: number = 0;
-    
-    client = new Client({
-        authStrategy: new LocalAuth(),
+
+    const client = new Client({
+        authStrategy: new LocalAuth({
+            clientId: `bot-${usuario_id}`
+        }),
         puppeteer: {
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         }
     });
 
-    client.on('qr', async qr => {
-        await atualizarQrCode(qr);
-        console.log('Aguardando conexão!');
-        qrCode = qr;
+    clients[usuario_id] = client;
+
+    client.on('qr', async (qr: string) => {
+        qrCodes[usuario_id] = qr;
+        await funcoes.atualizarQrCode(qr, usuario_id);
+        QrCodeTerminal.generate(qr, { small: true });
     });
 
     client.on('ready', () => {
-        console.log('✅ Bot conectado!');
+        const meuNumero = client.info.wid.user;
+        console.log(meuNumero);
+        console.log(`✅ Bot do usuário ${usuario_id} está pronto!`);
+        funcoes.atualizarConecao(usuario_id, 'ONLINE');
     });
 
-    client.on('disconnected', reason => {
+    client.on('disconnected', (reason: any) => {
         tentativasDeReconexao++;
         testTentativasDeReconexao(tentativasDeReconexao);
         console.log('❌ Bot desconectado. Tentando reconectar...', reason);
@@ -117,26 +76,18 @@ function startBot() {
         setTimeout(startBot, 5000);
     });
 
-    client.on('message', async msg => {
+    client.on('message', async (msg: Message) => {
         try {
             let numero = msg.from;
+            const res: boolean = await funcoes.testMensagem(msg, numero, client);
 
-            if (numero === 'status@broadcast' || numero.endsWith('@g.us')) return;
-
-            if (numero.endsWith('@lid')) {
-                const jidReal = await resolverNumero(numero);
-                if (jidReal) numero = jidReal;
-            }
+            if (!res) return;
+            numero = await funcoes.formatarNumero(numero, client);
 
             const texto = msg.body || '';
-            if (msg.fromMe) return;
-
-            const msgTimestamp = Math.floor(msg.timestamp); // timestamp em segundos
+            const msgTimestamp = Math.floor(msg.timestamp);
             const agora = Math.floor(Date.now() / 1000);
             if (agora - msgTimestamp > 10) return;
-
-            const usuarioAchado = await verificarAluno(numero);
-            if (usuarioAchado) return;
 
             juntarMensagens(numero, texto);
 
@@ -145,8 +96,11 @@ function startBot() {
                 delete mensagensPendentes[numero];
                 delete timeouts[numero];
 
-                const res = await responderPergunta(mensagens, numero);
-                if (res) await enviarMensagem(res, numero);
+                const res = await funcoes.responderPergunta(mensagens, numero, usuario_id, client);
+                // console.log('Resposta gerada para', res);
+                await new Promise(r => setTimeout(r, 1500));
+                const response = `*BOT IDEALZINHO:*\n${res}`;
+                await client.sendMessage(`${numero}@c.us`, response);
             }, TEMPO_ESPERA);
 
         } catch (err) {
@@ -157,4 +111,4 @@ function startBot() {
     client.initialize();
 }
 
-export { startBot, qrCode, client, enviarMensagem }
+export { startBot };
