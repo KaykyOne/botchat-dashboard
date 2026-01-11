@@ -4,7 +4,9 @@ import QrCodeTerminal from 'qrcode-terminal';
 const { LocalAuth } = pkg;
 import dotenv from 'dotenv';
 dotenv.config();
-import Funcoes from './funcoes';
+import Funcoes from './funcs/useBot';
+import useMensagem from './funcs/useMensagem';
+import useBot from './funcs/useBot';
 
 const mensagensPendentes: { [key: string]: string } = {};
 const timeouts: { [key: string]: NodeJS.Timeout } = {};
@@ -13,7 +15,8 @@ const TEMPO_ESPERA = 2000;
 const clients: Record<number, Client> = {};
 const qrCodes: Record<number, string> = {};
 
-const funcoes = Funcoes();
+const funcoes = useMensagem();
+const botFuncs = useBot();
 
 // Junta mensagens do mesmo número
 function juntarMensagens(numero: string, texto: string) {
@@ -96,11 +99,20 @@ function startBot(usuario_id: number) {
                 delete mensagensPendentes[numero];
                 delete timeouts[numero];
 
-                const res = await funcoes.responderPergunta(mensagens, numero, usuario_id, client);
+                const res = await botFuncs.responderPergunta(mensagens, numero, usuario_id, client);
                 // console.log('Resposta gerada para', res);
-                await new Promise(r => setTimeout(r, 1500));
-                const response = `*BOT IDEALZINHO:*\n${res}`;
-                await client.sendMessage(`${numero}@c.us`, response);
+                const mensagems = res.split('(SEPARAR)');
+                if (mensagems.length > 1) {
+                    for (const m of mensagems) {
+                        await new Promise(r => setTimeout(r, 1500));
+                        const response = `*BOT IDEALZINHO:*\n${m}`;
+                        await client.sendMessage(`${ numero }@c.us`, response);
+                    }
+                } else {
+                    await new Promise(r => setTimeout(r, 1500));
+                    const response = `*BOT IDEALZINHO:*\n${ res }`;
+                    await client.sendMessage(`${ numero }@c.us`, response);
+                }
             }, TEMPO_ESPERA);
 
         } catch (err) {
