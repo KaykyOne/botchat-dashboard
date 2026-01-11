@@ -4,8 +4,17 @@ const promptDeNaturalidade = 'você deve se comunicar de forma extremamente natu
 
 const promptDeSegurança = 'você nunca deve inventar informações, valores, regras ou condições que não tenham sido explicitamente fornecidas. se não souber responder algo com certeza, seja honesto e informe que um atendente humano pode ajudar melhor naquele caso. quando a pergunta estiver fora do escopo da autoescola ou das informações disponíveis, oriente o cliente de forma educada e ofereça a opção de chamar um atendente humano. nunca faça promessas, garantias ou afirmações legais que não tenham sido confirmadas. a confiança do cliente é prioridade absoluta.';
 
-function configurePrompt(promptCliente:string) {
-    const messages = [
+const promptColombo = `classifique o interesse do usuario e retorne um json com o mesmo, dessa forma: {"interesse":<valor>}, os valores podem ser exemplo: "primeira_habilitacao_carro_moto", "primeira_habilitacao_somente_moto", "primeira_habilitacao_somente_carro", "renovacao_habilitacao", "mudanca_categoria_onibus_d", "mudanca_categoria_onibus_e", "curso_especializante", "reciclagem", "nenhum_interesse". analise as mensagens anteriores do usuario e defina o interesse com base nelas. se o interesse nao estiver claro, retorne "nenhum_interesse". responda apenas com o json, sem nenhum texto adicional.`;
+
+const clausulaTamanho = `responda sempre da forma mais curta e objetiva possível. elimine qualquer palavra que não seja essencial para transmitir a informação. evite explicações, introduções, repetições, exemplos, justificativas ou comentários adicionais. prefira frases mínimas e diretas. quando possível, utilize apenas uma frase curta. nunca escreva texto desnecessário.`;
+
+type Message = {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
+
+function configurePrompt(promptCliente?: string | null): Message[] {
+    const messages: Message[] = [
         {
             role: "system",
             content: promptDeControleDeMensagens
@@ -15,8 +24,12 @@ function configurePrompt(promptCliente:string) {
             content: promptDeNaturalidade
         },
         {
-            role: "user",
-            content: promptCliente
+            role: "system",
+            content: clausulaTamanho
+        },
+        {
+            role: "system",
+            content: promptCliente || ""
         },
         {
             role: "system",
@@ -27,4 +40,4 @@ function configurePrompt(promptCliente:string) {
     return messages;
 }
 
-export { configurePrompt };
+export { configurePrompt, promptColombo, type Message };

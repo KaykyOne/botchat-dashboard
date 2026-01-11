@@ -101,7 +101,7 @@ function startBot(usuario_id: number) {
 
                 const res = await botFuncs.responderPergunta(mensagens, numero, usuario_id, client);
                 // console.log('Resposta gerada para', res);
-                const mensagems = res.split('(SEPARAR)');
+                const mensagems = res.includes('(SEPARAR)') ? res.split('(SEPARAR)') : [res];
                 if (mensagems.length > 1) {
                     for (const m of mensagems) {
                         await new Promise(r => setTimeout(r, 1500));
