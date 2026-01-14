@@ -4,10 +4,13 @@ const KEY: string | undefined = process.env.KEY;
 import prisma from '../../prisma/prisma.js';
 import useUsuario from './useUsuario.js';
 import { configurePrompt, promptColombo, Message } from './config.js';
+import chatgpt from './chatgpt.js';
+import fs from 'fs';
 
 const { getAtividade } = useUsuario();
 
 export default function useBot() {
+
   async function getPrompt(usuario_id: number) {
     const data = await prisma.usuarios.findFirst({
       where: { id: usuario_id },
@@ -15,7 +18,7 @@ export default function useBot() {
     });
 
     return data ? data.prompt : "responda educadamente epenas, sorria e acene"
-  }
+  };
 
   async function criarLead(usuario_id: number, numero: string) {
     const lead = await prisma.leads.findFirst({
@@ -33,7 +36,7 @@ export default function useBot() {
     }
 
     return;
-  }
+  };
 
   async function getHistorico(usuario_id: number, numero: string, mensagem: string) {
 
@@ -65,7 +68,7 @@ export default function useBot() {
 
     historico.push(...his);
     return historico;
-  }
+  };
 
   async function insertHistorico(historico: Partial<Historico>) {
     await prisma.historico.create({
@@ -78,12 +81,18 @@ export default function useBot() {
     })
 
     return;
-  }
+  };
 
   async function responderPergunta(mensagem: string, numero: string, usuario_id: number, client?: any) {
 
     const promptBanco: string | null = await getPrompt(usuario_id);
-    let superPropt = configurePrompt(promptBanco);
+    const lead = await prisma.leads.findFirst({
+      where: { numero: numero, cliente_id: usuario_id },
+      select: { id: true, interesse: true, qualidade: true }
+    })
+
+    const temperatura = lead?.qualidade || 'fria';
+    let superPropt = configurePrompt(promptBanco, temperatura);
 
     const atividade = await getAtividade(usuario_id, numero);
     if (!atividade) return;
@@ -92,10 +101,6 @@ export default function useBot() {
     superPropt.unshift(...historico);
     historico = superPropt;
 
-    const lead = await prisma.leads.findFirst({
-      where: { numero: numero, cliente_id: usuario_id },
-      select: { id: true, interesse: true }
-    })
 
     await atualizarInteresse(historico, lead).catch(err => console.error("Erro ao atualizar interesse:", err));
     if (lead?.interesse) {
@@ -107,24 +112,16 @@ export default function useBot() {
       return 'Desculpe, estou enfrentando problemas técnicos no momento.';
     }
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: historico,
-        temperature: 0.1,
-        stop: ["Mensagem do usuário:", "Resposta:"]
-      })
-    });
+    const res = await chatgpt.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: historico,
+      temperature: 0.1,
+      stop: ["Mensagem do usuário:", "Resposta:"]
+    })
 
-    const json = await res.json();
-    const resposta = json.choices[0].message.content;
+    const resposta = res.choices[0].message.content;
 
-    if (lead) {
+    if (lead && resposta) {
       await insertHistorico({
         autor: 'Lead',
         mensagem: mensagem,
@@ -140,8 +137,8 @@ export default function useBot() {
       });
     }
 
-    return resposta;
-  }
+    return resposta || '';
+  };
 
   async function atualizarInteresse(historico: Message[], lead: any) {
     const mensagensDoCliente = historico.filter(msg => msg.role === 'user').length;
@@ -156,45 +153,48 @@ export default function useBot() {
         return 'Desculpe, estou enfrentando problemas técnicos no momento.';
       }
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: mensagensParaAnalise,
-          temperature: 0.1,
-          stop: ["Mensagem do usuário:", "Resposta:"]
-        })
-      });
+      const res = await chatgpt.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: mensagensParaAnalise,
+        temperature: 0.1,
+        stop: ["Mensagem do usuário:", "Resposta:"]
+      })
 
-      const json = await res.json();
-      const resposta = json.choices[0].message.content;
+      const resposta = res.choices[0].message.content;
 
       let parsed;
 
       try {
-        parsed = JSON.parse(resposta);
+        if (!resposta) return;
+        if (resposta.trim().startsWith('{')) {
+          parsed = JSON.parse(resposta);
+        }
       } catch (e) {
         console.error("JSON inválido retornado pelo Colombo:", resposta);
         return;
       }
-
+      console.log("Interesse analisado pelo Colombo:", parsed);
       await prisma.leads.update({
         where: { id: lead?.id },
-        data: { interesse: parsed.interesse || "" }
+        data: { interesse: parsed.interesse || "nenhum_interesse", qualidade: (parsed.temperatura).toUpperCase() || "FRIA" }
       });
     }
-  }
+  };
+
+  async function converterAudioEmTexto(audioPath: string) {
+    const transcription = await chatgpt.audio.transcriptions.create({
+      file: fs.createReadStream(audioPath),
+      model: "gpt-4o-transcribe"
+    });
+
+    fs.unlinkSync(audioPath);
+
+    return transcription.text;
+  };
 
   return {
     responderPergunta,
+    getAtividade,
+    converterAudioEmTexto
   };
 }
-
-
-
-
-// export { responderPergunta, realtimeSupabase, deleteFolder, escutarQrCode, atualizarQrCode, testMensagem, enviarMensagem, formatarNumero };
