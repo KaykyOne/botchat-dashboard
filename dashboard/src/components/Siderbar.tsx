@@ -96,6 +96,13 @@ export default function Siderbar({ leads, setLead, setModalOpen }: SiderbarProps
           </span>
           Configuração do Bot
         </button>
+
+        <button className='flex justify-center items-center gap-2 border border-neutral-700 text-neutral-300 px-4 py-3 rounded-xl hover:bg-neutral-800 transition-all duration-200 cursor-pointer' onClick={() => setModalOpen(true)}>
+          <span className="material-symbols-outlined ">
+            chat_bubble
+          </span>
+          Testar Bot
+        </button>
         {/* <div className='relative group'>
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-primary transition-colors !text-xl">
             search
