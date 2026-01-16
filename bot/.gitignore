@@ -13,3 +13,6 @@ node_modules
 /.wwebjs_cache
 
 /audios/..
+
+/src/bots/baileys/sessions
+/src/bots/whatsapp_web/sessions

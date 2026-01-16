@@ -23,11 +23,14 @@ const promptColombo = `
     - curso_especializante
     - reciclagem
     - nenhum_interesse
+    - falar_com_atendente
 
     definição de temperatura:
     - fria: apenas curiosidade, perguntas genéricas, sem intenção clara de iniciar
     - morna: demonstra interesse, faz perguntas sobre funcionamento, valores ou opções
     - quente: demonstra intenção clara de iniciar, matricular, pagar ou começar o processo
+
+    caso a pessoa tenha pedido nas mensagens para falar com atendente ou com um humano, você envia: falar_com_atendente como interesse!
 
     analise apenas as mensagens do usuário.
     se o interesse não estiver claro, retorne "nenhum_interesse".

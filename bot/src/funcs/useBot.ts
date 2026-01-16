@@ -21,6 +21,7 @@ export default function useBot() {
   };
 
   async function criarLead(usuario_id: number, numero: string) {
+
     const lead = await prisma.leads.findFirst({
       where: { numero: numero, cliente_id: usuario_id },
       select: { id: true }
@@ -70,6 +71,39 @@ export default function useBot() {
     return historico;
   };
 
+  function limparNumero(numero: string) {
+    let numeroFormat = numero;
+    if (numero.includes("@")) {
+      numeroFormat = numero.split("@")[0];
+    }
+    return numeroFormat
+  }
+
+  async function mudarAtividadeIA(lead_id:number) {
+
+    try {
+      const lead = await prisma.leads.findFirst({
+        where: { id:lead_id },
+        select: { ia_ativa: true }
+      });
+
+      if (lead) {
+        await prisma.leads.update({
+          where: {
+            id: lead_id
+          },
+          data: {
+            ia_ativa: !lead.ia_ativa
+          }
+        })
+      }
+    } catch (error) {
+      console.error("erro ao alterar atividade IA na lead!")
+    }
+
+
+  }
+
   async function insertHistorico(historico: Partial<Historico>) {
     await prisma.historico.create({
       data: {
@@ -83,7 +117,9 @@ export default function useBot() {
     return;
   };
 
-  async function responderPergunta(mensagem: string, numero: string, usuario_id: number, client?: any) {
+  async function responderPergunta(mensagem: string, numeroOriginal: string, usuario_id: number, client?: any) {
+
+    const numero = limparNumero(numeroOriginal);
 
     const promptBanco: string | null = await getPrompt(usuario_id);
     const lead = await prisma.leads.findFirst({
@@ -139,12 +175,11 @@ export default function useBot() {
   };
 
   async function atualizarInteresse(historico: Message[], lead: any) {
-    const mensagensDoCliente = historico.filter(msg => msg.role === 'user').length;
     const historicoFiltrado = historico.filter(msg => msg.role !== 'system');
 
     let mensagensParaAnalise = historicoFiltrado.slice(-10);
     mensagensParaAnalise.unshift({ role: 'system', content: promptColombo });
-    if (mensagensDoCliente > 3 && mensagensDoCliente <= 5) {
+    if (historicoFiltrado.length < 3 || (Number.isInteger((mensagensParaAnalise.length / 5)))) {
 
       if (!KEY) {
         console.error('Chave da API não definida.');
@@ -169,7 +204,12 @@ export default function useBot() {
         console.error("JSON inválido retornado pelo Colombo:", resposta);
         return;
       }
-      console.log("Interesse analisado pelo Colombo:", parsed);
+
+      if(parsed.interesse == "falar_com_atendente"){
+        await mudarAtividadeIA(lead?.id);
+      }
+
+      // console.log("Interesse analisado pelo Colombo:", parsed);
       await prisma.leads.update({
         where: { id: lead?.id },
         data: { interesse: parsed.interesse || "nenhum_interesse", qualidade: (parsed.temperatura).toUpperCase() || "FRIA" }

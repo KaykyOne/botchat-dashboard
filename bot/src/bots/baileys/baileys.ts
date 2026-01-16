@@ -1,156 +1,180 @@
-// ES Modules
-import pkg, { Client, Message } from 'whatsapp-web.js';
+import makeWASocket, {
+    useMultiFileAuthState,
+    DisconnectReason,
+    WASocket,
+    proto,
+    downloadContentFromMessage
+} from '@whiskeysockets/baileys'
+import fs from 'fs'
+import useMensagem from '../../funcs/useMensagem'
+import useBot from '../../funcs/useBot'
+import { pegarVicioAleatorio } from '../../funcs/config'
+import QrCodeTerminal from 'qrcode-terminal'
+import {
+    juntarMensagens,
+    testTentativasDeReconexao,
+    timeouts,
+    mensagensPendentes,
+    TEMPO_ESPERA
+} from '../bot'
 
-const { LocalAuth } = pkg;
-import dotenv from 'dotenv';
-dotenv.config();
-import useMensagem from '../funcs/useMensagem';
-import useBot from '../funcs/useBot';
-import fs from 'fs';
-import { pegarVicioAleatorio } from '../funcs/config';
+const clients = new Map<number, WASocket>()
+const qrCodes: Record<number, string> = {}
 
-const mensagensPendentes: { [key: string]: string } = {};
-const timeouts: { [key: string]: NodeJS.Timeout } = {};
-const TEMPO_ESPERA = 2000;
+async function baixarAudio(msg: any, caminho: string) {
+    if (!msg.message?.audioMessage && !msg.message?.ptt) return null
 
-const clients: Record<number, Client> = {};
-const qrCodes: Record<number, string> = {};
+    const stream = await downloadContentFromMessage(msg.message.audioMessage || msg.message.ptt, 'audio')
+    const buffer: Buffer[] = []
 
-const funcoes = useMensagem();
-const botFuncs = useBot();
-
-// Junta mensagens do mesmo número
-function juntarMensagens(numero: string, texto: string) {
-    mensagensPendentes[numero] = mensagensPendentes[numero]
-        ? mensagensPendentes[numero] + '\n' + texto
-        : texto;
-
-    if (timeouts[numero]) clearTimeout(timeouts[numero]);
-}
-
-const testTentativasDeReconexao = (a: number) => { a > 5 && process.exit(0); return; }
-
-// Inicializa o bot
-function startBot(usuario_id: number) {
-    console.log(`Iniciando bot para o usuário ${usuario_id}`);
-
-    if (clients[usuario_id]) {
-        console.log(`Bot do usuário ${usuario_id} já está rodando`);
-        return;
+    for await (const chunk of stream) {
+        buffer.push(chunk)
     }
 
-    let tentativasDeReconexao: number = 0;
-
-    const client = new Client({
-        authStrategy: new LocalAuth({
-            clientId: `bot-${usuario_id}`
-        }),
-        puppeteer: {
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        }
-    });
-
-    clients[usuario_id] = client;
-
-    client.on('qr', async (qr: string) => {
-        qrCodes[usuario_id] = qr;
-        await funcoes.atualizarQrCode(qr, usuario_id);
-        QrCodeTerminal.generate(qr, { small: true });
-    });
-
-    client.on('ready', () => {
-        const meuNumero = client.info.wid.user;
-        console.log(meuNumero);
-        console.log(`✅ Bot do usuário ${usuario_id} está pronto!`);
-        funcoes.atualizarConecao(usuario_id, 'ONLINE');
-    });
-
-    client.on('disconnected', (reason: any) => {
-        tentativasDeReconexao++;
-        testTentativasDeReconexao(tentativasDeReconexao);
-        console.log('❌ Bot desconectado. Tentando reconectar...', reason);
-        setTimeout(startBot, 5000);
-    });
-
-    client.on('auth_failure', () => {
-        tentativasDeReconexao++;
-        testTentativasDeReconexao(tentativasDeReconexao);
-        console.log('⚠️ Falha na autenticação. Reiniciando bot...');
-        setTimeout(startBot, 5000);
-    });
-
-    client.on('message', async (msg: Message) => {
-        if (msg.from.endsWith('@g.us')) return;
-        console.log(msg.type);
-        if (msg.type === 'image' || msg.type === 'video') {
-            let numero = msg.from;
-            await client.sendMessage(`${numero}@c.us`, 'Desculpe, no momento só consigo responder mensagens de texto ou voz. Por favor, envie sua pergunta em formato de texto ou voz.');
-        }
-
-        try {
-            let numero = msg.from;
-            const res: boolean = await funcoes.testMensagem(msg, numero, client);
-
-            if (!res) return;
-            let numeroAudios = 0;
-            let texto = '';
-            numero = await funcoes.formatarNumero(numero, client);
-            if (msg.type == 'ptt' || msg.type === 'audio') {
-                const media = await msg.downloadMedia();
-                if (!media) return;
-
-                const buffer = Buffer.from(media.data, 'base64');
-                fs.writeFileSync(`audios/${numero}-${numeroAudios}.ogg`, buffer);
-
-                texto = await botFuncs.converterAudioEmTexto(`audios/${numero}-${numeroAudios}.ogg`) || '';
-                numeroAudios++;
-                console.log('Transcrição do áudio:', texto);
-            } else {
-                texto = msg.body || '';
-            }
-
-            const msgTimestamp = Math.floor(msg.timestamp);
-            const agora = Math.floor(Date.now() / 1000);
-            if (agora - msgTimestamp > 10) return;
-
-            juntarMensagens(numero, texto);
-
-            timeouts[numero] = setTimeout(async () => {
-                const mensagens = mensagensPendentes[numero];
-                delete mensagensPendentes[numero];
-                delete timeouts[numero];
-
-                const res = await botFuncs.responderPergunta(mensagens, numero, usuario_id, client);
-                numeroAudios = 0;
-                const chat = await msg.getChat();
-                if (!chat) return;
-                // console.log('Resposta gerada para', res);
-                if (res) {
-                    await client.sendMessage(`${numero}@c.us`, pegarVicioAleatorio());
-                }
-                if (res) {
-                    const mensagems = res.includes('(SEPARAR)') ? res.split('(SEPARAR)') : [res];
-                    if (mensagems.length > 1) {
-                        for (const m of mensagems) {
-                            await new Promise(r => setTimeout(r, 1500));
-                            const response = `*BOT IDEALZINHO:*\n${m}`;
-                            await client.sendMessage(`${numero}@c.us`, response);
-                        }
-                    } else {
-                        await new Promise(r => setTimeout(r, 1500));
-                        const response = `*BOT IDEALZINHO:*\n${res}`;
-                        await client.sendMessage(`${numero}@c.us`, response);
-                    }
-                }
-            }, TEMPO_ESPERA);
-
-        } catch (err) {
-            console.error(err);
-        }
-    });
-
-    client.initialize();
+    const arquivo = Buffer.concat(buffer)
+    fs.writeFileSync(caminho, arquivo)
+    return arquivo
 }
 
-export { startBot };
+async function startBot(usuario_id: number) {
+    if (clients.has(usuario_id)) {
+        console.log(`Bot do usuário ${usuario_id} já está rodando`)
+        return
+    }
+
+    console.log(`Iniciando bot para o usuário ${usuario_id}`)
+
+    const { state, saveCreds } = await useMultiFileAuthState(
+        `./src/bots/baileys/sessions/bot-baileys-${usuario_id}`
+    )
+
+    const funcoes = useMensagem()
+    const botFuncs = useBot()
+
+    const sock = makeWASocket({
+        auth: state,
+        printQRInTerminal: false
+    })
+
+    clients.set(usuario_id, sock)
+    sock.ev.on('creds.update', saveCreds)
+
+    let tentativasDeReconexao = 0
+
+    // ------------------
+    // CONEXÃO / QR / STATUS
+    // ------------------
+
+    sock.ev.on('connection.update', async update => {
+        const { connection, lastDisconnect, qr } = update
+
+        if (qr) {
+            qrCodes[usuario_id] = qr
+            await funcoes.atualizarQrCode(qr, usuario_id)
+            console.log(`QR code do usuário ${usuario_id}`)
+            QrCodeTerminal.generate(qr, { small: true })
+        }
+
+        if (connection === 'open') {
+            console.log(`✅ Bot do usuário ${usuario_id} está online`)
+            funcoes.atualizarConecao(usuario_id, 'ONLINE')
+            tentativasDeReconexao = 0
+        }
+
+        if (connection === 'close') {
+            const statusCode = (lastDisconnect?.error as any)?.output?.statusCode
+
+            const shouldReconnect =
+                statusCode !== DisconnectReason.loggedOut
+
+            console.log(`❌ Bot do usuário ${usuario_id} desconectado`, statusCode)
+
+            testTentativasDeReconexao(++tentativasDeReconexao)
+
+            clients.delete(usuario_id)
+
+            if (shouldReconnect) {
+                setTimeout(() => startBot(usuario_id), 5000)
+            } else {
+                console.log(`⚠️ Sessão inválida, precisa novo QR: ${usuario_id}`)
+            }
+        }
+    })
+
+    // ------------------
+    // MENSAGENS
+    // ------------------
+
+    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+        if (type !== 'notify') return
+        console.log(type);
+
+        const msg = messages[0]
+        if (!msg.message) return
+        if (msg.key.fromMe) return
+        if (msg.key.remoteJid?.endsWith('@g.us')) return
+        const numero = msg.key.remoteJid!
+        const me = sock.user?.id
+        if (numero == me) return;
+
+        if (numero.includes("5517997437646")) return;
+
+        let texto = "";
+
+        if (msg.message.conversation || msg.message.extendedTextMessage?.text) {
+            texto = msg.message.conversation ||
+                msg.message.extendedTextMessage?.text || ''
+        } else if (msg.message?.audioMessage) {
+            const path = `./src/bots/baileys/audios/${numero}.ogg`
+            await baixarAudio(msg, path);
+            texto = await botFuncs.converterAudioEmTexto(path) || "";
+            console.log(texto);
+        }
+
+        const timestamp = Number(msg.messageTimestamp)
+        const agora = Math.floor(Date.now() / 1000)
+        if (agora - timestamp > 10) return
+
+        try {
+            const res = await funcoes.testMensagem(msg, numero, sock)
+            if (!res) return
+
+            juntarMensagens(numero, texto)
+
+            timeouts[numero] = setTimeout(async () => {
+                const mensagens = mensagensPendentes[numero]
+                delete mensagensPendentes[numero]
+                delete timeouts[numero]
+
+                const resposta = await botFuncs.responderPergunta(
+                    mensagens,
+                    numero,
+                    usuario_id,
+                    sock
+                )
+
+                if (!resposta) return
+
+                const partes = resposta.includes('(SEPARAR)')
+                    ? resposta.split('(SEPARAR)')
+                    : [resposta]
+
+                // await sock.sendMessage(numero, { text: `*BOT IDEALZINHO:*\n${pegarVicioAleatorio()}` })
+                for (const p of partes) {
+                    sock.sendPresenceUpdate('composing', numero);
+                    await new Promise(r => setTimeout(r, 4000))
+                    await sock.sendMessage(numero, {
+                        text: `*BOT IDEALZINHO:*\n${p}`
+                    })
+                    sock.sendPresenceUpdate('paused', numero);
+                    await new Promise(r => setTimeout(r, 20000))
+                }
+
+            }, TEMPO_ESPERA)
+        } catch (err) {
+            console.error(err)
+        }
+    })
+}
+
+export { startBot }
