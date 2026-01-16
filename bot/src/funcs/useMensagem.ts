@@ -40,7 +40,7 @@ export default function useMensagem() {
 
     async function testMensagem(msg: any, numero: string, client: any) {
         if (numero === 'status@broadcast' || numero.endsWith('@g.us')) return false;
-        if (msg.fromMe) return false;
+        if (msg.fromMe || msg.key.fromMe) return false;
         else return true;
     }
 

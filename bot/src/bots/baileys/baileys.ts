@@ -36,6 +36,27 @@ async function baixarAudio(msg: any, caminho: string) {
     return arquivo
 }
 
+function extractNumero(msg: any, sock: WASocket): string | null {
+    const raw =
+        msg.key.fromMe
+            ? sock.user?.id
+            : msg.key.participant ||
+            msg.key.participantAlt ||
+            msg.key.remoteJidAlt ||
+            msg.message?.extendedTextMessage?.contextInfo?.participant ||
+            msg.key.remoteJid
+
+    if (!raw) return null
+
+    const numero = raw.split('@')[0].replace(/\D/g, '')
+
+    if (!numero.startsWith('55')) return null
+
+    return numero
+}
+
+
+
 async function startBot(usuario_id: number) {
     if (clients.has(usuario_id)) {
         console.log(`Bot do usuário ${usuario_id} já está rodando`)
@@ -110,10 +131,28 @@ async function startBot(usuario_id: number) {
         console.log(type);
 
         const msg = messages[0]
-        if (!msg.message) return
-        if (msg.key.fromMe) return
+        console.log(msg)
+
         if (msg.key.remoteJid?.endsWith('@g.us')) return
-        const numero = msg.key.remoteJid!
+        if (!msg.message) return
+        const textoMensagem = msg.message.conversation ||
+            msg.message.extendedTextMessage?.text || '';
+
+        const numero = extractNumero(msg, sock);
+        const remoteJid = msg.key.remoteJid;
+        console.log(numero);
+        if (!numero || !remoteJid) return;
+
+        if ((msg.key.fromMe) && !textoMensagem.includes("*BOT IDEALZINHO:*")) {
+            const lead = await botFuncs.getLead(numero, usuario_id);
+            if (lead?.id) {
+                await botFuncs.mudarAtividadeIA(lead?.id, false);
+            } else {
+                return;
+            }
+        }
+
+        if (msg.key.fromMe) return
         const me = sock.user?.id
         if (numero == me) return;
 
@@ -122,14 +161,15 @@ async function startBot(usuario_id: number) {
         let texto = "";
 
         if (msg.message.conversation || msg.message.extendedTextMessage?.text) {
-            texto = msg.message.conversation ||
-                msg.message.extendedTextMessage?.text || ''
+            texto = textoMensagem;
         } else if (msg.message?.audioMessage) {
             const path = `./src/bots/baileys/audios/${numero}.ogg`
             await baixarAudio(msg, path);
             texto = await botFuncs.converterAudioEmTexto(path) || "";
             console.log(texto);
         }
+
+
 
         const timestamp = Number(msg.messageTimestamp)
         const agora = Math.floor(Date.now() / 1000)
@@ -161,12 +201,12 @@ async function startBot(usuario_id: number) {
 
                 // await sock.sendMessage(numero, { text: `*BOT IDEALZINHO:*\n${pegarVicioAleatorio()}` })
                 for (const p of partes) {
-                    sock.sendPresenceUpdate('composing', numero);
+                    sock.sendPresenceUpdate('composing', remoteJid);
                     await new Promise(r => setTimeout(r, 4000))
-                    await sock.sendMessage(numero, {
+                    await sock.sendMessage(remoteJid, {
                         text: `*BOT IDEALZINHO:*\n${p}`
                     })
-                    sock.sendPresenceUpdate('paused', numero);
+                    sock.sendPresenceUpdate('paused', remoteJid);
                     await new Promise(r => setTimeout(r, 20000))
                 }
 

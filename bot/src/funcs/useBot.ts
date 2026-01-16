@@ -39,6 +39,20 @@ export default function useBot() {
     return;
   };
 
+  async function getLead(numero:string, usuario_id:number) {
+
+    const numeroFormatado = limparNumero(numero)
+
+    const res = await prisma.leads.findFirst({
+      where:{
+        cliente_id:usuario_id,
+        numero:numeroFormatado
+      }
+    })
+
+    return res;
+  }
+
   async function getHistorico(usuario_id: number, numero: string, mensagem: string) {
 
     let his: Message[] = [];
@@ -79,7 +93,7 @@ export default function useBot() {
     return numeroFormat
   }
 
-  async function mudarAtividadeIA(lead_id:number) {
+  async function mudarAtividadeIA(lead_id:number, atividade?:boolean) {
 
     try {
       const lead = await prisma.leads.findFirst({
@@ -93,7 +107,7 @@ export default function useBot() {
             id: lead_id
           },
           data: {
-            ia_ativa: !lead.ia_ativa
+            ia_ativa: atividade != null ? atividade : !lead.ia_ativa
           }
         })
       }
@@ -179,7 +193,7 @@ export default function useBot() {
 
     let mensagensParaAnalise = historicoFiltrado.slice(-10);
     mensagensParaAnalise.unshift({ role: 'system', content: promptColombo });
-    if (historicoFiltrado.length < 3 || (Number.isInteger((mensagensParaAnalise.length / 5)))) {
+    if ((historicoFiltrado.length > 2 && historicoFiltrado.length < 4) || (Number.isInteger((mensagensParaAnalise.length / 5)))) {
 
       if (!KEY) {
         console.error('Chave da API não definida.');
@@ -231,6 +245,8 @@ export default function useBot() {
   return {
     responderPergunta,
     getAtividade,
-    converterAudioEmTexto
+    converterAudioEmTexto,
+    mudarAtividadeIA,
+    getLead
   };
 }

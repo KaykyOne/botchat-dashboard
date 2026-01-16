@@ -26,6 +26,10 @@ export default function useUsuario() {
         }else {
             test = (testUsuario?.ia_ativa && testUsuario?.ativo) || false;
         }
+
+        console.log("teste do usuario")
+        console.log(test);
+
         
         return test;
     }
