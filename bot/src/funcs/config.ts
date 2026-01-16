@@ -76,28 +76,66 @@ seja direto, objetivo e conduza para a matrícula.
 `;
 
 const viciosDeLinguagem = [
-  "Entendi.",
-  "Perfeito.",
-  "Certo.",
-  "Beleza.",
-  "Tranquilo.",
-  "Show.",
-  "Boa pergunta.",
-  "Sem problema.",
-  "Combinado.",
-  "Ótimo.",
-  "Legal.",
-  "Tudo bem.",
-  "Claro.",
-  "Sem dúvida.",
-  "Pode deixar.",
-  "Fica tranquilo.",
-  "Isso mesmo.",
-  "Exatamente.",
-  "Entendo você.",
-  "Vamos lá."
+    "Entendi.",
+    "Perfeito.",
+    "Certo.",
+    "Beleza.",
+    "Tranquilo.",
+    "Show.",
+    "Boa pergunta.",
+    "Sem problema.",
+    "Combinado.",
+    "Ótimo.",
+    "Legal.",
+    "Tudo bem.",
+    "Claro.",
+    "Sem dúvida.",
+    "Pode deixar.",
+    "Fica tranquilo.",
+    "Isso mesmo.",
+    "Exatamente.",
+    "Entendo você.",
+    "Vamos lá."
 ];
 
+const promptFormatacao = `
+Answer optimized for WhatsApp: provide responses using short sentences, focused on conveying information concisely and clearly. Visually separate topics using line breaks (enter), avoiding long paragraphs or text blocks. Prioritize clear, direct information, and use simple lists or enumerations when appropriate. Do not include explanations or justifications beyond what is necessary.
+
+Before finalizing your response, review to ensure that:
+- The text is divided into well-spaced sections
+- Sentences are short and objective
+- There is no excessive text
+
+If there are multiple important points, organize them into numbered or bulleted items.
+Avoid unnecessary emojis and symbols, unless requested by the user.
+
+Output format:
+- Plain text, adapted for quick reading on WhatsApp
+- Short sentences, with spacing between blocks
+- Total size: concise, usually between 3 and 8 separate lines
+
+Examples:
+
+Example 1  
+Question: "How do I check my card balance?"  
+Answer:  
+1️⃣ Open the card app  
+2️⃣ Log in  
+3️⃣ Select "Check balance"  
+4️⃣ Amount will appear on the screen
+
+Example 2  
+Question: "What do I need to open an account?"  
+Answer:  
+- ID or driver’s license  
+- Proof of address  
+- Phone with camera  
+- Valid email
+
+Remember:  
+Your goal is to make reading and understanding easier for WhatsApp users by using concise, well-separated information.
+
+Important: Always reply using spaced text. Give short, direct answers, separating information with line breaks.`
 
 type Message = {
     role: 'system' | 'user' | 'assistant';
@@ -114,6 +152,10 @@ function configurePrompt(promptCliente?: string | null, temperatura?: any): Mess
         {
             role: "system",
             content: promptDeNaturalidade
+        },
+        {
+            role: "system",
+            content: promptFormatacao
         },
         {
             role: "system",
