@@ -13,13 +13,21 @@ export default function Page() {
   const [modalOpen, setModalOpen] = useState(false)
 
   // Busca todos os leads ao carregar
-  const buscar = async () => {
-    const data = await selectAllLeads()
-    console.log(data)
-    setLeads(data || [])
-  }
+
+  // const buscar = async () => {
+  //   const data = await selectAllLeads()
+  //   console.log(data)
+  //   setLeads(data || [])
+  // }
+
   useEffect(() => {
-    buscar()
+    const fetch = async () => {
+      const data = await selectAllLeads()
+      console.log(data)
+      setLeads(data || [])
+    }
+
+    fetch()
   }, [])
   useEffect(() => {
 
@@ -48,8 +56,8 @@ export default function Page() {
   }
 
   return (
-    <div className='flex flex-col w-screen h-screen'>
-      <Header item={lead} buscar={buscar} />
+    <div className='flex flex-col w-screen h-screen overflow-hidden'>
+      <Header item={lead} buscar={() => {return;}} />
 
       <div className='flex w-full h-full'>
         <Siderbar leads={leads} setLead={setLead} setModalOpen={setModalOpen} />

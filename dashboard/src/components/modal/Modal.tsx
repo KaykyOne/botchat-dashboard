@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import {
-    useQrCode, atualizarPrompt, pegarPrompt, getIaAtividade, atualizarAtividadeIa
+    useQrCode, atualizarPrompt, pegarPrompt, getIaAtividade, atualizarAtividadeIa, desconectar, conectar
 } from '../../hooks/useConfiguracoes';
 import QRCode from "react-qr-code";
 import InternalLoading from '../InternalLoading';
@@ -16,14 +16,18 @@ export default function Modal({ setModalOpen }: ModalProps) {
 
     // const [configuracoes, setConfiguracoes] = useState({});
     const [loading, setLoading] = useState(true);
-    const { qrCode, escutarQrCode, conectado } = useQrCode();
+    const { qrCode, getQrCode, conectado } = useQrCode();
     const [promptAntesAtt, setPromptAntesAtt] = useState<string>('');
     const [prompt, setPrompt] = useState<string>('');
     const [iaAtiva, setIaAtiva] = useState<boolean>(false);
 
-    useEffect(() => {
-        escutarQrCode();
-    }, [escutarQrCode]);
+    const startQrInterval = async () => {
+        await getQrCode("BAiLEYS");
+        const id = setInterval(async () => {
+            await getQrCode("BAiLEYS");
+        }, 5000);
+        return id;
+    };
 
     useEffect(() => {
         setLoading(true);
@@ -35,91 +39,12 @@ export default function Modal({ setModalOpen }: ModalProps) {
             setPrompt(res);
         }
         fetch();
+        const inter = startQrInterval();
     }, []);
 
     useEffect(() => {
-        if (iaAtiva && (qrCode || conectado)) {
-            setLoading(false);
-        }
+        setLoading(false);
     }, [iaAtiva, qrCode, conectado]);
-
-
-
-    // async function buscar() {
-    //     setLoading(true);
-    //     try {
-    //         const data = await buscarConfiguracoes();
-    //         if (data) {
-    //             setConfiguracoes(data.configs);
-    //             // console.log('Configurações buscadas com sucesso:', data.configs);
-
-    //         }
-    //     } catch (error) {
-    //         console.error('Erro ao buscar configurações:', error);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // }
-
-    // useEffect(() => {
-    //     buscar()
-    //     const canal = escutarQrCode(buscar)
-
-    //     // cleanup quando o modal for fechado
-    //     return () => {
-    //         // console.log('❌ Cancelando canal Realtime')
-    //         supabase.removeChannel(canal)
-    //     }
-    // }, [])
-
-    // const renderConfig = (key, value) => {
-
-    //     if (key === 'qrCode' || key === 'conectado') {
-    //         return null;
-    //     }
-    //     return (
-    //         <div key={key} className='group'>
-    //             <label className='flex items-center gap-2 text-sm font-semibold text-neutral-300 mb-2 capitalize'>
-    //                 <span className='w-1.5 h-1.5 bg-purple-500 rounded-full group-hover:bg-purple-500 transition-colors'></span>
-    //                 {key.replace(/([A-Z])/g, ' $1').trim()}
-    //             </label>
-    //             {value.length < 10 ? (
-    //                 <input
-    //                     type='text'
-    //                     value={value}
-    //                     onChange={(e) => setConfiguracoes({ ...configuracoes, [key]: e.target.value })}
-    //                     className='w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-neutral-100 placeholder-neutral-500'
-    //                     placeholder={`Digite ${key}...`}
-    //                 />
-    //             )
-    //                 : (
-    //                     <textarea
-    //                         value={value}
-    //                         onChange={(e) => setConfiguracoes({ ...configuracoes, [key]: e.target.value })}
-    //                         className='w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-neutral-100 placeholder-neutral-500 resize-y'
-    //                         placeholder={`Digite ${key}...`}
-    //                         rows={Math.min(Math.ceil(value.length / 43) || 20)}
-    //                     />
-    //                 )}
-    //         </div>
-    //     )
-    // }
-
-    // const saveConfigs = async () => {
-    //     console.log('salvando!');
-    //     await atualizarConfiguracoes(configuracoes);
-    //     console.log(configuracoes);
-    //     await buscar();
-    // }
-
-    // const resetConfig = async () => {
-    //     console.log('reiniciando conexão!');
-    //     await atualizarConfiguracoes({ ...configuracoes, qrCode: '', conectado: true });
-    //     setLoading(true);
-    //     await setTimeout(() => { }, 30000);
-    //     await buscar();
-    //     setLoading(false);
-    // }
 
     const HeaderTitle = () => {
         return (
@@ -171,13 +96,22 @@ export default function Modal({ setModalOpen }: ModalProps) {
                         check_box
                     </span>
                     <h1 className='!text-green-200 text-2xl'>Conectado</h1>
+                    <button
+                        onClick={async () => await desconectar()}
+                        className='button w-full bg-red-700'>
+                        Desconectar
+                    </button>
                 </div>
             );
         } else {
             if (qrCode === null) {
                 return <h1>Buscando QR Code...</h1>;
             } else {
-                return <h1>{<QRCode value={qrCode || ''} size={200} />}</h1>;
+                return (
+                    <div className='flex flex-col gap-2 w-full justify-center items-center bg-neutral-800 p-4 rounded-2xl'>
+                        {<QRCode value={qrCode || ''} size={200} />}
+                    </div >
+                );
             }
         }
     }
