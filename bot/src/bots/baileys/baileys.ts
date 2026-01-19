@@ -10,6 +10,7 @@ import useBot from '../../funcs/useBot'
 import QrCodeTerminal from 'qrcode-terminal'
 import { Usuario } from '../bot'
 import { disconnect } from '../../controller/bot.controller'
+import pino from "pino";
 
 //Funções genericas
 //---------------------------------------------------------------------------
@@ -26,7 +27,10 @@ function juntarMensagens(numero: string, texto: string) {
     if (timeouts[numero]) clearTimeout(timeouts[numero]);
 }
 
-const testTentativasDeReconexao = (a: number) => { a > 5 && process.exit(0); return; }
+const testTentativasDeReconexao = (a: number) => {
+    if(a > 5) return false;
+    else return true;
+ }
 //---------------------------------------------------------------------------
 
 async function baixarAudio(msg: any, caminho: string) {
@@ -82,6 +86,7 @@ async function startBot(usuario: Usuario) {
     const botFuncs = useBot()
 
     const sock = makeWASocket({
+        logger: pino({ level: "error" }),
         auth: state,
         printQRInTerminal: false
     })
@@ -100,14 +105,15 @@ async function startBot(usuario: Usuario) {
 
         if (qr) {
             usuario.qrCode = qr;
-            await funcoes.atualizarQrCode(qr, usuario_id)
-            console.log(`QR code do usuário ${usuario_id}`)
-            QrCodeTerminal.generate(qr, { small: true })
+            await funcoes.atualizarQrCode(qr, usuario_id, "BAILEYS");
+            console.log(`QR code do usuário ${usuario_id} atualizado!`)
+            // QrCodeTerminal.generate(qr, { small: true })
+            usuario.ativado = true;
         }
 
         if (connection === 'open') {
             console.log(`✅ Bot do usuário ${usuario_id} está online`)
-            funcoes.atualizarConecao(usuario_id, 'ONLINE')
+            await funcoes.atualizarConecao(usuario_id, 'ONLINE', "BAILEYS");
             usuario.tentativasReconexao = 0;
         }
 
@@ -120,16 +126,26 @@ async function startBot(usuario: Usuario) {
             console.log(`❌ Bot do usuário ${usuario_id} desconectado`, statusCode)
             usuario.cliente = null;
             usuario.qrCode = null;
-            if (usuario.tentativasReconexao) {
-                usuario.tentativasReconexao = usuario.tentativasReconexao + 1;
-                testTentativasDeReconexao(usuario.tentativasReconexao)
-                console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
-                startBot(usuario);
-                return;
-            }else {
-                usuario.tentativasReconexao = 1;
-                console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
-                startBot(usuario);
+            await funcoes.atualizarConecao(usuario_id, 'OFFLINE', "BAILEYS");
+            if (usuario.ativado) {
+                if (usuario.tentativasReconexao) {
+                    usuario.tentativasReconexao = usuario.tentativasReconexao + 1;
+                    const test = testTentativasDeReconexao(usuario.tentativasReconexao);
+                    if (test == true) {
+                        console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
+                        startBot(usuario);
+                        return;
+                    }
+                    return;
+
+                } else {
+                    usuario.tentativasReconexao = 1;
+                    console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
+                    startBot(usuario);
+                    return;
+                }
+            } else {
+                
                 return;
             }
         }
@@ -141,10 +157,10 @@ async function startBot(usuario: Usuario) {
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return
-        console.log(type);
+        // console.log(type);
 
         const msg = messages[0]
-        console.log(msg)
+        // console.log(msg)
 
         if (msg.key.remoteJid?.endsWith('@g.us')) return
         if (!msg.message) return
@@ -153,7 +169,7 @@ async function startBot(usuario: Usuario) {
 
         const numero = extractNumero(msg, sock);
         const remoteJid = msg.key.remoteJid;
-        console.log(numero);
+        // console.log(numero);
         if (!numero || !remoteJid) return;
 
         if ((msg.key.fromMe) && !textoMensagem.includes("*BOT IDEALZINHO:*")) {

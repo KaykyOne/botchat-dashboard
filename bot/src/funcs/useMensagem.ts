@@ -1,19 +1,20 @@
 import { InstanceStatus } from '../../generated/prisma/enums.js';
 import fs from 'fs/promises';
+import { WhatsAppProvider } from '../../generated/prisma/enums.js';
 import prisma from '../../prisma/prisma.js';
 
 export default function useMensagem() {
-    async function atualizarQrCode(qr: string, usuario_id: number) {
+    async function atualizarQrCode(qr: string, usuario_id: number, provider:WhatsAppProvider) {
 
         const instance = await prisma.whatsappInstances.findFirst({
-            where: { cliente_id: usuario_id, provider: 'WEBJS' }
+            where: { cliente_id: usuario_id, provider: provider}
         });
 
         if (!instance) {
             await prisma.whatsappInstances.create({
                 data: {
                     cliente_id: usuario_id,
-                    provider: 'WEBJS',
+                    provider: provider,
                     qr_code: qr,
                     status: 'CONNECTING',
                     session_path: `session-bot-${usuario_id}`
@@ -23,17 +24,16 @@ export default function useMensagem() {
         }
         else {
             await prisma.whatsappInstances.updateMany({
-                where: { cliente_id: usuario_id, provider: 'WEBJS' },
+                where: { cliente_id: usuario_id, provider: provider },
                 data: { qr_code: qr }
             })
             return;
         }
-
     }
 
-    async function atualizarConecao(id_usuario: number, status: InstanceStatus) {
+    async function atualizarConecao(id_usuario: number, status: InstanceStatus, provider:WhatsAppProvider) {
         await prisma.whatsappInstances.updateMany({
-            where: { cliente_id: id_usuario, provider: 'WEBJS' },
+            where: { cliente_id: id_usuario, provider: provider },
             data: { status: status }
         });
     }

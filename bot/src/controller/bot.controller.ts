@@ -28,10 +28,10 @@ async function start(req: Request, res: Response) {
     }
     try {
         await startBot(Number(id));
-        res.status(200).send({ message: "Usuário desconectado com sucesso!" });
+        res.status(200).send({ message: "Usuário iniciado com sucesso!" });
         return;
     } catch (error) {
-        res.status(500).send({ message: "Erro ao desconectar usuario!" });
+        res.status(500).send({ message: "Erro ao iniciado usuario!" });
         return;
     }
 

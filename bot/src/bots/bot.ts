@@ -5,11 +5,13 @@ import Funcoes from "../funcs/useUsuario";
 import { Usuario } from "../types/usuario";
 import { usuarios } from "../service/bot.service";
 
+let iniciado = false;
+
 const startBot = async () => {
     const search: Usuarios[] = await Funcoes().getAllUsers();
     if (search.length > 0) {
         search.forEach(user => {
-            usuarios.push({ id: user.id, cliente: null, qrCode: null })
+            usuarios.push({ id: user.id, cliente: null, qrCode: null, ativado: false })
         });
 
         if (usuarios.length === 0) {
@@ -22,6 +24,7 @@ const startBot = async () => {
         });
 
         console.log("Todos os bots iniciado!");
+        iniciado = true;
         return;
     }else{
         console.log("Nenhum bot encontrado!");
@@ -30,9 +33,10 @@ const startBot = async () => {
 }
 
 setInterval(() => {
-    if(usuarios.length == 0){
+    if(!iniciado) return;
+    const filter = usuarios.filter(user => user.ativado === true);
+    if(filter.length == 0){
         console.error("Todos os usuários foram desligados!");
-        process.exit(0);
     }else{
         console.log(`Número de usuários ativos: ${usuarios.length}`);
     }

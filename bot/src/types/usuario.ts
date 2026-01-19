@@ -5,7 +5,8 @@ type Usuario = {
     id: number,
     cliente: WASocket | Client | null,
     qrCode: string | null,
-    tentativasReconexao?: number
+    tentativasReconexao?: number,
+    ativado:boolean,
 }
 
 export { type Usuario }
