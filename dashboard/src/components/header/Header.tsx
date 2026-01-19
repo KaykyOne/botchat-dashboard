@@ -27,7 +27,7 @@ export default function Header({ item, buscar }: HeaderProps) {
     if (item != null) {
       const atualzar = async (a: Lead) => {
         await updateLead(a.id, a);
-        await buscar();
+        // await buscar();
       }
       const itemAnterior = { ...item };
       item.qualidade = novaQualidade;

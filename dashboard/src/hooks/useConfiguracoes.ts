@@ -10,12 +10,12 @@ const useQrCode = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [conectado, setConectado] = useState<boolean>(false);
 
-  const getQrCode = async () => {
+  const getQrCode = async (tipo: string) => {
     const { data, error } = await supabase
       .from('WhatsappInstances')
-      .select('qr_code')
+      .select('qr_code, status')
       .eq('cliente_id', usuario_id)
-      .eq('status', 'CONNECTING')
+      .eq('provider', tipo.toUpperCase())
       .single();
 
     if (!data) {
@@ -29,7 +29,13 @@ const useQrCode = () => {
       return;
     }
     const qr_code = data?.qr_code || null;
+    const test = data.status == "ONLINE" ? true : false
+    // if ((qrCode != qr_code) || (test != conectado)) {
+    //   toast.info("Status alterado!");
+    // }
+    setConectado(test);
     setQrCode(qr_code);
+
   };
 
   const verificarConexao = async () => {
@@ -48,14 +54,31 @@ const useQrCode = () => {
     setConectado(!!data);
   }
 
-  const escutarQrCode = useCallback(async () => {
-    await getQrCode();
-    setTimeout(async () => {
-      await getQrCode();
-    }, 5000);
-  }, []);
+  return { qrCode, conectado, getQrCode };
+}
 
-  return { qrCode, escutarQrCode, conectado };
+const desconectar = async () => {
+  toast.info("Desconectando, aguarde um momento...");
+  const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/disconnect/${usuario_id}`);
+  console.log(res);
+  const response = await res.json();
+  if (!res.ok) {
+    toast.error("Erro ao desconectar!");
+    return;
+  }
+
+  toast.success(response.message);
+}
+
+const conectar = async () => {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/start/${usuario_id}`);
+  const response = await res.json();
+  if (!res.ok) {
+    toast.error("Erro ao solicitar nova conexão!");
+    return;
+  }
+
+  toast.success(response.message);
 }
 
 const pegarHistorico = async (lead_id: number) => {
@@ -125,4 +148,13 @@ const getIaAtividade = async () => {
   return data?.ia_ativa || false;
 }
 
-export { useQrCode, pegarHistorico, pegarPrompt, atualizarPrompt, getIaAtividade, atualizarAtividadeIa };
+export {
+  useQrCode,
+  pegarHistorico,
+  pegarPrompt,
+  atualizarPrompt,
+  getIaAtividade,
+  atualizarAtividadeIa,
+  desconectar,
+  conectar
+};

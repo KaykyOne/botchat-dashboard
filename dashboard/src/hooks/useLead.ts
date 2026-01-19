@@ -1,4 +1,3 @@
-"use client"
 import { supabase } from "./supabase";
 import type { Lead } from "../models/index";
 

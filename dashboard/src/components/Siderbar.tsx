@@ -1,5 +1,5 @@
-'use client'
-import React, { useEffect, useState } from 'react'
+
+import React, { useState } from 'react'
 import { motion } from 'framer-motion';
 import { Lead } from '../models/lead';
 import { pegarHistorico } from '../hooks/useConfiguracoes';
@@ -34,45 +34,26 @@ export default function Siderbar({ leads, setLead, setModalOpen }: SiderbarProps
 
   const filtros = ['todos', 'fria', 'quente', 'finalizada']
 
-  // const renderLead = async (item: Lead, index: number) => {
-  //   const historico = await pegarHistorico(item.id);
-  //   const historicoFiltrado = historico.filter((item: Historico) => item.autor == 'USUARIO');
-  //   const ultimaMensagem = historicoFiltrado[historicoFiltrado.length - 1];
-  //   const mensagem = ultimaMensagem?.content;
+  const renderLead = (item: Lead, index: number) => {
+    return (
+      <motion.div key={item.id} className='bg-neutral-900 flex gap-2 group p-3 rounded-lg justify-between hover:translate-x-3 transition-all duration-300 cursor-pointer'>
+        <div className='flex flex-col gap-2 w-full flex-1'>
+          <h1 className='text-xl'>{item.numero}</h1>
+          <p>{item.qualidade}</p>
+          <div className='flex gap-2 w-full'>
+            <p className='capitalize bg-purple-700 text-[10px] !text-purple-100 p-2 w-fit px-5 rounded-lg'>{item.ia_ativa ? "IA ativa" : "IA desativada"}</p>
+            <p className='capitalize bg-amber-700 text-[10px] !text-amber-100 p-2 w-fit px-5 rounded-lg'>{(new Date(item.created_at)).toLocaleDateString()}</p>
+          </div>
 
-  //   return (
-  //     <motion.div
-  //       className='flex gap-2 w-full p-2 rounded-md text-white hover:ml-2 transition-all duration-300 cursor-pointer hover:bg-neutral-900 items-start justify-start'
-  //       key={item.id}
-  //       onClick={() => { setMensagens(item.historico); setLead(item) }}
-  //       initial={{ opacity: 0, y: -10 }}
-  //       animate={{ opacity: 1, y: 0 }}
-  //       transition={{ delay: index * 0.1 }}>
-  //       <span className="material-symbols-outlined text-neutral-600 !text-3xl">
-  //         account_circle
-  //       </span>
-  //       <div className='flex flex-col'>
-  //         <div className='flex gap-2'>
-  //           <h1>{item.numero}</h1>
-  //           <div className={css[item.qualidade].css}>
-  //             {item.qualidade}
-  //             <span className="material-symbols-outlined !text-[14px]">
-  //               {css[item.qualidade].icone}
-  //             </span>
-  //           </div>
-  //           {item.ia_ativa && (
-  //             <div className="bg-purple-50-500 text-white text-[10px] font-medium px-2 py-1 rounded w-fit">
-  //               IA
-  //             </div>
-  //           )}
-
-  //         </div>
-  //         <p>{mensagem?.length > 100 ? mensagem.slice(0, 50) + "..." : mensagem}</p>
-  //       </div>
-  //     </motion.div>
-  //   )
-  //   return (<div></div>)
-  // }
+        </div>
+        <div className='hidden group-hover:flex h-full justify-end items-center text-neutral-6 text-neutral-600'>
+          <span className="material-symbols-outlined !text-5xl">
+            chevron_right
+          </span>
+        </div>
+      </motion.div>
+    )
+  }
 
   let leadsFiltradas = [];
   leadsFiltradas = filtro != 0 ? leads?.filter(item => item.qualidade == filtros[filtro]) : leads;
@@ -83,7 +64,7 @@ export default function Siderbar({ leads, setLead, setModalOpen }: SiderbarProps
       initial={{ opacity: 0, width: 0 }}
       animate={{ opacity: 1, width: '100%' }}
       transition={{ delay: 1 * 0.1 }}
-      className='flex flex-col gap-2 bg-background w-full md:max-w-[400px] h-full p-6 shadow-2xl'>
+      className='flex flex-col gap-2 bg-background w-full md:max-w-[400px] h-full p-6 shadow-2xl max-h-[90vh]'>
       <div className='mt-5 flex flex-col gap-4'>
 
         <div className='flex flex-col'>
@@ -97,7 +78,7 @@ export default function Siderbar({ leads, setLead, setModalOpen }: SiderbarProps
           Configuração do Bot
         </button>
 
-        <button className='flex justify-center items-center gap-2 border border-neutral-700 text-neutral-300 px-4 py-3 rounded-xl hover:bg-neutral-800 transition-all duration-200 cursor-pointer' onClick={() => setModalOpen(true)}>
+        <button className='flex justify-center items-center gap-2 border border-neutral-700 text-neutral-300 px-4 py-3 rounded-xl hover:bg-neutral-800 transition-all duration-200 cursor-pointer' onClick={() => setModalOpen(true)} disabled={true}>
           <span className="material-symbols-outlined ">
             chat_bubble
           </span>
@@ -166,11 +147,15 @@ export default function Siderbar({ leads, setLead, setModalOpen }: SiderbarProps
       </div>
 
 
-      {/* <div className='flex flex-col gap-1 mt-5 overflow-hidden overflow-y-auto no-scrollbar'>
-        {Object.values(leadsFiltradas).map((item, index) =>
+      <div className='flex flex-col gap-1 mt-5 overflow-hidden overflow-y-auto no-scrollbar'>
+        {leadsFiltradas.length > 0 ? Object.values(leadsFiltradas).map((item, index) =>
           (renderLead(item, index))
+        ) : (
+          <div className='text-sm h-full w-full justify-center items-center text-center'>
+            <p className='!text-neutral-300'>Nenhuma Lead Encontrada</p>
+          </div>
         )}
-      </div> */}
+      </div>
     </motion.div>
   )
 }
