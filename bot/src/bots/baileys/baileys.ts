@@ -186,6 +186,9 @@ async function startBot(usuario: Usuario) {
         if (numero == me) return;
 
         if (numero.includes("5517997437646")) return;
+        if (numero.includes("5567981368080")) return;
+        if (numero.includes("556781368080")) return;
+        if (numero.includes("5517997572900")) return;
 
         let texto = "";
 
