@@ -2,24 +2,32 @@ import makeWASocket, {
     useMultiFileAuthState,
     DisconnectReason,
     WASocket,
-    proto,
     downloadContentFromMessage
 } from '@whiskeysockets/baileys'
 import fs from 'fs'
 import useMensagem from '../../funcs/useMensagem'
 import useBot from '../../funcs/useBot'
-import { pegarVicioAleatorio } from '../../funcs/config'
 import QrCodeTerminal from 'qrcode-terminal'
-import {
-    juntarMensagens,
-    testTentativasDeReconexao,
-    timeouts,
-    mensagensPendentes,
-    TEMPO_ESPERA
-} from '../bot'
+import { Usuario } from '../bot'
+import { disconnect } from '../../controller/bot.controller'
 
-const clients = new Map<number, WASocket>()
-const qrCodes: Record<number, string> = {}
+//Funções genericas
+//---------------------------------------------------------------------------
+const mensagensPendentes: { [key: string]: string } = {};
+const timeouts: { [key: string]: NodeJS.Timeout } = {};
+
+const TEMPO_ESPERA = 15000;
+
+function juntarMensagens(numero: string, texto: string) {
+    mensagensPendentes[numero] = mensagensPendentes[numero]
+        ? mensagensPendentes[numero] + '\n' + texto
+        : texto;
+
+    if (timeouts[numero]) clearTimeout(timeouts[numero]);
+}
+
+const testTentativasDeReconexao = (a: number) => { a > 5 && process.exit(0); return; }
+//---------------------------------------------------------------------------
 
 async function baixarAudio(msg: any, caminho: string) {
     if (!msg.message?.audioMessage && !msg.message?.ptt) return null
@@ -55,13 +63,14 @@ function extractNumero(msg: any, sock: WASocket): string | null {
     return numero
 }
 
+async function startBot(usuario: Usuario) {
 
-
-async function startBot(usuario_id: number) {
-    if (clients.has(usuario_id)) {
-        console.log(`Bot do usuário ${usuario_id} já está rodando`)
+    if (!usuario.id) {
+        console.log(`id não encontrado!`)
         return
     }
+
+    const usuario_id = usuario.id;
 
     console.log(`Iniciando bot para o usuário ${usuario_id}`)
 
@@ -77,7 +86,7 @@ async function startBot(usuario_id: number) {
         printQRInTerminal: false
     })
 
-    clients.set(usuario_id, sock)
+    usuario.cliente = sock;
     sock.ev.on('creds.update', saveCreds)
 
     let tentativasDeReconexao = 0
@@ -90,7 +99,7 @@ async function startBot(usuario_id: number) {
         const { connection, lastDisconnect, qr } = update
 
         if (qr) {
-            qrCodes[usuario_id] = qr
+            usuario.qrCode = qr;
             await funcoes.atualizarQrCode(qr, usuario_id)
             console.log(`QR code do usuário ${usuario_id}`)
             QrCodeTerminal.generate(qr, { small: true })
@@ -99,7 +108,7 @@ async function startBot(usuario_id: number) {
         if (connection === 'open') {
             console.log(`✅ Bot do usuário ${usuario_id} está online`)
             funcoes.atualizarConecao(usuario_id, 'ONLINE')
-            tentativasDeReconexao = 0
+            usuario.tentativasReconexao = 0;
         }
 
         if (connection === 'close') {
@@ -109,15 +118,19 @@ async function startBot(usuario_id: number) {
                 statusCode !== DisconnectReason.loggedOut
 
             console.log(`❌ Bot do usuário ${usuario_id} desconectado`, statusCode)
-
-            testTentativasDeReconexao(++tentativasDeReconexao)
-
-            clients.delete(usuario_id)
-
-            if (shouldReconnect) {
-                setTimeout(() => startBot(usuario_id), 5000)
-            } else {
-                console.log(`⚠️ Sessão inválida, precisa novo QR: ${usuario_id}`)
+            usuario.cliente = null;
+            usuario.qrCode = null;
+            if (usuario.tentativasReconexao) {
+                usuario.tentativasReconexao = usuario.tentativasReconexao + 1;
+                testTentativasDeReconexao(usuario.tentativasReconexao)
+                console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
+                startBot(usuario);
+                return;
+            }else {
+                usuario.tentativasReconexao = 1;
+                console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
+                startBot(usuario);
+                return;
             }
         }
     })
@@ -215,6 +228,9 @@ async function startBot(usuario_id: number) {
             console.error(err)
         }
     })
+
+    return usuario;
 }
+
 
 export { startBot }

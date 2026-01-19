@@ -1,39 +1,42 @@
 import { startBot as startBaylears } from "./baileys/baileys";
-import { startBot as startWhatsapp } from "./whatsapp_web/whatsapp_web";
+// import { startBot as startWhatsapp } from "./whatsapp_web/whatsapp_web";
 import { Usuarios } from "../../generated/prisma/client";
 import Funcoes from "../funcs/useUsuario";
-
-const mensagensPendentes: { [key: string]: string } = {};
-const timeouts: { [key: string]: NodeJS.Timeout } = {};
-
-const TEMPO_ESPERA = 15000;
-
-function juntarMensagens(numero: string, texto: string) {
-    mensagensPendentes[numero] = mensagensPendentes[numero]
-        ? mensagensPendentes[numero] + '\n' + texto
-        : texto;
-
-    if (timeouts[numero]) clearTimeout(timeouts[numero]);
-}
-
-const testTentativasDeReconexao = (a: number) => { a > 5 && process.exit(0); return; }
+import { Usuario } from "../types/usuario";
+import { usuarios } from "../service/bot.service";
 
 const startBot = async () => {
-    const usuarios: Usuarios[] = await Funcoes().getAllUsers();
+    const search: Usuarios[] = await Funcoes().getAllUsers();
+    if (search.length > 0) {
+        search.forEach(user => {
+            usuarios.push({ id: user.id, cliente: null, qrCode: null })
+        });
 
-    if (usuarios.length === 0) {
-        console.log("Nenhum usuário ativo com IA encontrada.");
-        process.exit(0);
+        if (usuarios.length === 0) {
+            console.log("Nenhum usuário ativo com IA encontrada.");
+            process.exit(0);
+        }
+
+        usuarios.forEach(usuario => {
+            startBaylears(usuario);
+        });
+
+        console.log("Todos os bots iniciado!");
+        return;
+    }else{
+        console.log("Nenhum bot encontrado!");
+        return;
     }
-
-    usuarios.forEach(usuario => {
-        startBaylears(usuario.id);
-    });
-
-    console.log("Todos os bots iniciado!");
-
-    return;
 }
 
-export { juntarMensagens, testTentativasDeReconexao, timeouts, mensagensPendentes, TEMPO_ESPERA }
+setInterval(() => {
+    if(usuarios.length == 0){
+        console.error("Todos os usuários foram desligados!");
+        process.exit(0);
+    }else{
+        console.log(`Número de usuários ativos: ${usuarios.length}`);
+    }
+}, 10000)
+
 export default startBot;
+export { type Usuario }

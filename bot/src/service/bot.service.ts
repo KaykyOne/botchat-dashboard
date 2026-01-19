@@ -1,0 +1,49 @@
+import fs from "fs";
+import { startBot as startBaylears } from "../bots/baileys/baileys";
+import { startBot as startWhatsappWeb } from "../bots/whatsapp_web/whatsapp_web";
+import { Usuario } from "../bots/bot";
+import path from "path";
+
+const root = process.cwd();
+
+let usuarios: Usuario[] = []
+
+async function disconnectBot(id: number) {
+
+    try {
+        const user = usuarios.find(e => e.id = id);
+
+        user?.cliente?.logout();
+
+
+        const namePathBaileys = path.join(root, "src/bots/baileys/sessions", `bot-baileys-${id}`);
+        const namePathWhatsappWeb = path.join(root, "src/bots/whatsapp_web/sessions", `bot-whatsapp_web-${id}`);
+
+
+        fs.rmSync(namePathBaileys)
+        fs.rmSync(namePathWhatsappWeb)
+
+        usuarios = usuarios.filter(e => e.id != id);
+        return;
+    }
+    catch (erro) {
+        console.error("Erro ao desconectar no service!");
+        return;
+    }
+
+}
+
+async function startBot(id: number) {
+    const user: Usuario = {
+        id: id,
+        qrCode: null,
+        cliente: null
+    }
+
+    const res: Usuario | void = await startBaylears(user);
+    if (res != null) {
+        usuarios.push(res);
+    }
+}
+
+export { disconnectBot, startBot, usuarios }
