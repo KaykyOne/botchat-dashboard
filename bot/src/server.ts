@@ -16,7 +16,7 @@ app.use(cors({
 
 startBot();
 
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 3009;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Servidor rodando em http://0.0.0.0:${PORT}`);
 });
