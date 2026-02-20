@@ -7,9 +7,7 @@ import makeWASocket, {
 import fs from 'fs'
 import useMensagem from '../../funcs/useMensagem'
 import useBot from '../../funcs/useBot'
-import QrCodeTerminal from 'qrcode-terminal'
 import { Usuario } from '../bot'
-import { disconnect } from '../../controller/bot.controller'
 import pino from "pino";
 
 //Funções genericas
@@ -185,6 +183,7 @@ async function startBot(usuario: Usuario) {
         const me = sock.user?.id
         if (numero == me) return;
 
+        //erro grave q eu teria q corrigir, mas ainda n descorbri como, por conta do bot ficar enviando mensagem para sim mesmo, pq eu n sei
         if (numero.includes("5517997437646")) return;
         if (numero.includes("5567981368080")) return;
         if (numero.includes("556781368080")) return;
