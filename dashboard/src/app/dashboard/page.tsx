@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react'
 import { selectAllLeads, } from '../../hooks/useLead'
 import Siderbar from '../../components/Siderbar'
-import Header from '../../components/header/Header'
 import Modal from '../../components/modal/Modal'
 import { Historico, Lead } from '../../models/index';
 
@@ -57,8 +56,6 @@ export default function Page() {
 
   return (
     <div className='flex flex-col w-screen h-screen overflow-hidden'>
-      <Header item={lead} buscar={() => {return;}} />
-
       <div className='flex w-full h-full'>
         <Siderbar leads={leads} setLead={setLead} setModalOpen={setModalOpen} />
         <div className='flex-col w-full relative items-center hidden md:flex'>

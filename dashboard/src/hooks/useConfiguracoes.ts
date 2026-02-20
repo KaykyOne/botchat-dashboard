@@ -3,14 +3,15 @@ import { useState, useCallback } from "react";
 import { supabase } from "./supabase";
 import { toast } from "react-toastify";
 
-const usuario_id = 1;
-
 // Custom hook - agora os hooks estão DENTRO de uma função
 const useQrCode = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [conectado, setConectado] = useState<boolean>(false);
 
   const getQrCode = async (tipo: string) => {
+
+    const usuario_id = localStorage.getItem('id_do_usuario');
+
     const { data, error } = await supabase
       .from('WhatsappInstances')
       .select('qr_code, status')
@@ -39,6 +40,8 @@ const useQrCode = () => {
   };
 
   const verificarConexao = async () => {
+    const usuario_id = localStorage.getItem('id_do_usuario');
+
     const { data, error } = await supabase
       .from('WhatsappInstances')
       .select('qr_code')
@@ -59,6 +62,8 @@ const useQrCode = () => {
 
 const desconectar = async () => {
   toast.info("Desconectando, aguarde um momento...");
+  const usuario_id = localStorage.getItem('id_do_usuario');
+
   const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/disconnect/${usuario_id}`);
   console.log(res);
   const response = await res.json();
@@ -71,6 +76,8 @@ const desconectar = async () => {
 }
 
 const conectar = async () => {
+  const usuario_id = localStorage.getItem('id_do_usuario');
+
   const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/start/${usuario_id}`);
   const response = await res.json();
   if (!res.ok) {
@@ -97,6 +104,8 @@ const pegarHistorico = async (lead_id: number) => {
 }
 
 const pegarPrompt = async () => {
+  const usuario_id = localStorage.getItem('id_do_usuario');
+
   const { data, error } = await supabase
     .from('Usuarios')
     .select('prompt')
@@ -112,6 +121,8 @@ const pegarPrompt = async () => {
 }
 
 const atualizarPrompt = async (prompt: string) => {
+  const usuario_id = localStorage.getItem('id_do_usuario');
+
   const { data, error } = await supabase
     .from('Usuarios')
     .update({ prompt })
@@ -125,6 +136,8 @@ const atualizarPrompt = async (prompt: string) => {
 }
 
 const atualizarAtividadeIa = async (ativo: boolean) => {
+  const usuario_id = localStorage.getItem('id_do_usuario');
+
   const { data, error } = await supabase
     .from('Usuarios')
     .update({ ia_ativa: ativo })
@@ -139,6 +152,8 @@ const atualizarAtividadeIa = async (ativo: boolean) => {
 }
 
 const getIaAtividade = async () => {
+  const usuario_id = localStorage.getItem('id_do_usuario');
+
   const { data, error } = await supabase
     .from('Usuarios')
     .select('ia_ativa')

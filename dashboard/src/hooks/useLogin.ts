@@ -20,6 +20,13 @@ const login = async (email: string, password: string, saveDados: boolean) => {
         toast.error('Usuário ou senha incorretos!');
         return false;
     }
+
+    localStorage.setItem('id_do_usuario', data.id);
+
+    if(!data.ativo) {
+        toast.error('Usuário inativo, contate o administrador!');
+        return false;
+    }
     salvarDados(email, password, saveDados);
     return data;
 }

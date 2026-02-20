@@ -1,9 +1,8 @@
 import { supabase } from "./supabase";
 import type { Lead } from "../models/index";
 
-const usuario_id = 1;
-
 async function selectAllLeads() {
+    const usuario_id = localStorage.getItem('id_do_usuario');
 
     let Leads: Lead[] = []
 

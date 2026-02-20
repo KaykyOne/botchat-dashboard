@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #121212;
-  --foreground: #121212;
-  --primary: #6F0A59;
-  --secundary: #4B003B;
+  --background: #14151A;
+  --dark-gray: #1E1F26;
+  --foreground: #FFFFFF;
+  --primary: #6C3BFF;
+  --secundary: #4B2DBF;
   --border-color: #838383;
 }
 
@@ -13,35 +14,21 @@ h1 {
   font-optical-sizing: auto;
   font-weight: 500;
   font-style: normal;
-  @apply text-neutral-400
 }
 
-h2, h3, h4, h5, p, a {
-  @apply text-neutral-600
-}
-
-a:hover {
-  @apply transition-all duration-300 text-neutral-300
+.borda {
+  border-radius: 15px;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-dark-gray: var(--dark-gray);
   --color-foreground: var(--foreground);
-  --color-primary: #6F0A59;
-  --color-secundary: #4B003B;
+  --color-primary: #6C3BFF;
+  --color-secundary: #4B2DBF;
   --color-border-color: #838383;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --primary: #6F0A59;
-    --secundary: #4B003B;
-    --border-color: #838383;
-  }
 }
 
 body {
@@ -53,16 +40,16 @@ body {
 }
 
 .input {
-  @apply bg-neutral-800 text-neutral-300 p-2 pl-3 pr-3 rounded-lg shadow-2xl transition-all duration-300 focus:outline-none w-full !pl-11 !py-3 sm:!py-4 text-sm sm:text-base;
+  @apply bg-transparent border-2 border-neutral-800 w-full rounded-md transition-all duration-300;
   box-shadow: 0 0 0 0 transparent;
 }
 
 .input:focus {
-  transform: translateY(-3px)
+  color: var(--primary)
 }
 
 .button {
-  @apply w-full text-[#E29ACD] p-3 flex justify-center items-center gap-3 rounded-lg text-2xl font-bold flex gap-2 justify-center cursor-pointer transition duration-300;
+  @apply w-full text-white p-3 flex justify-center items-center gap-3 rounded-md text-2xl font-bold flex gap-2 justify-center cursor-pointer transition duration-300;
   background: linear-gradient(to left, var(--primary), var(--secundary));
 }
 
