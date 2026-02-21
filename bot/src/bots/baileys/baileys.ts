@@ -26,9 +26,9 @@ function juntarMensagens(numero: string, texto: string) {
 }
 
 const testTentativasDeReconexao = (a: number) => {
-    if(a > 5) return false;
+    if (a > 5) return false;
     else return true;
- }
+}
 //---------------------------------------------------------------------------
 
 async function baixarAudio(msg: any, caminho: string) {
@@ -143,7 +143,7 @@ async function startBot(usuario: Usuario) {
                     return;
                 }
             } else {
-                
+
                 return;
             }
         }
@@ -250,5 +250,59 @@ async function startBot(usuario: Usuario) {
     return usuario;
 }
 
+async function disconnectBot(usuario: Usuario) {
+    if (!usuario || !usuario.cliente) return;
 
-export { startBot }
+    try {
+        const sock = usuario.cliente;
+        const usuario_id = usuario.id;
+        if (sock == null) {
+            console.log(`Socket do usuário ${usuario_id} já está nulo, pulando desconexão.`);
+            return;
+        }
+        if (!('ev' in sock)) {
+            console.log(`Socket do usuário ${usuario_id} não é uma instância válida de WASocket.`);
+            return;
+        }
+        if (sock.ev == null) {
+            console.log(`Eventos do socket do usuário ${usuario_id} já estão nulos, pulando remoção de listeners.`);
+        }
+        console.log(`🔌 Desconectando bot do usuário ${usuario_id}`);
+
+        // Marcar como não ativado para impedir reconexão automática
+        usuario.ativado = false;
+
+        // Cancelar todos os timeouts pendentes
+        Object.keys(timeouts).forEach(numero => {
+            if (timeouts[numero]) {
+                clearTimeout(timeouts[numero]);
+                delete timeouts[numero];
+            }
+        });
+
+        // Limpar mensagens pendentes
+        Object.keys(mensagensPendentes).forEach(numero => {
+            delete mensagensPendentes[numero];
+        });
+
+        // Remover todos os listeners do socket
+        (sock.ev as any).removeAllListeners();
+
+        // Fazer logout e fechar a conexão
+        await sock.logout();
+        await sock.end(undefined);
+
+        usuario.cliente = null;
+        usuario.qrCode = null;
+
+        console.log(`✅ Bot do usuário ${usuario_id} foi desconectado com sucesso`);
+        return;
+    } catch (erro) {
+        console.error(`Erro ao desconectar bot do usuário:`, erro);
+        usuario.cliente = null;
+        usuario.ativado = false;
+        return;
+    }
+}
+
+export { startBot, disconnectBot }

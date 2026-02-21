@@ -9,6 +9,23 @@ import fs from 'fs';
 
 const { getAtividade } = useUsuario();
 
+async function organizerUsuarios() {
+  const usuariosAtuais = await prisma.usuarios.findMany({
+    where: { ativo: true, ia_ativa: false },
+    select: { id: true }
+  });
+
+  const idsAtuais = usuariosAtuais.map(u => u.id);
+
+  const res = await prisma.whatsappInstances.updateMany({
+    where: { cliente_id: { in: idsAtuais } },
+    data: { qr_code: "", status: "OFFLINE" }
+  })
+
+  console.log(`✅ ${res.count} usuários organizados para reconexão!`);
+  return;
+};
+
 export default function useBot() {
 
   async function getPrompt(usuario_id: number) {
@@ -39,14 +56,14 @@ export default function useBot() {
     return;
   };
 
-  async function getLead(numero:string, usuario_id:number) {
+  async function getLead(numero: string, usuario_id: number) {
 
     const numeroFormatado = limparNumero(numero)
 
     const res = await prisma.leads.findFirst({
-      where:{
-        cliente_id:usuario_id,
-        numero:numeroFormatado
+      where: {
+        cliente_id: usuario_id,
+        numero: numeroFormatado
       }
     })
 
@@ -93,11 +110,11 @@ export default function useBot() {
     return numeroFormat
   }
 
-  async function mudarAtividadeIA(lead_id:number, atividade?:boolean) {
+  async function mudarAtividadeIA(lead_id: number, atividade?: boolean) {
 
     try {
       const lead = await prisma.leads.findFirst({
-        where: { id:lead_id },
+        where: { id: lead_id },
         select: { ia_ativa: true }
       });
 
@@ -219,7 +236,7 @@ export default function useBot() {
         return;
       }
 
-      if(parsed.interesse == "falar_com_atendente"){
+      if (parsed.interesse == "falar_com_atendente") {
         await mudarAtividadeIA(lead?.id);
       }
 
@@ -247,6 +264,9 @@ export default function useBot() {
     getAtividade,
     converterAudioEmTexto,
     mudarAtividadeIA,
-    getLead
+    getLead,
+    organizerUsuarios
   };
 }
+
+export { organizerUsuarios }
