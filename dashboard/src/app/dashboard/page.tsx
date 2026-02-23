@@ -110,7 +110,7 @@ export default function Page() {
               </div>
 
               <div className="flex-1 relative overflow-y-auto">
-                <img src={'/bg-robots.png'} className='w-screen h-screen absolute z-0 opacity-10' />
+                <img src={'../bg-robots.png'} className='w-screen h-screen absolute z-0 opacity-10' />
                 <div className='flex p-8 w-full h-full z-10'>
                   <RenderLeads leads={leads} />
                 </div>
@@ -130,7 +130,7 @@ export default function Page() {
       <div className='flex w-full h-full'>
         <Siderbar leads={leads} setLead={setLead} setModalOpen={setModalOpen} />
         <div className='flex-col w-full relative items-center hidden md:flex justify-center bg-neutral-900'>
-          <img src={'/bg-robots.png'} className='w-screen h-screen absolute z-0 opacity-10' />
+          <img src={'../bg-robots.png'} className='w-screen h-screen absolute z-0 opacity-10' />
           <div className='flex flex-col p-10 gap-3 w-full h-full overflow-y-auto z-10 relative' id='mensagens-container'>
             {!loading ? mensagens.map(renderMensagem) : <Loading />}
           </div>
