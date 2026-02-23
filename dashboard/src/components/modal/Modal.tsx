@@ -62,7 +62,7 @@ export default function Modal({ setModalOpen }: ModalProps) {
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="bg-neutral-950 border border-neutral-800 rounded-md w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.6)]"
+                className="bg-neutral-950 border border-neutral-800 rounded-md w-full relative max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.6)]"
             >
 
                 {/* Header */}
@@ -83,6 +83,32 @@ export default function Modal({ setModalOpen }: ModalProps) {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+                    <section className="space-y-4">
+                        <h2 className="text-sm uppercase tracking-wider text-neutral-400">
+                            Sistema
+                        </h2>
+
+                        <div className="bg-neutral-900 border border-neutral-800 rounded-md p-6 flex justify-between items-center">
+                            <div>
+                                <p className="text-white text-sm font-medium">
+                                    IA Ativa
+                                </p>
+                                <p className="text-neutral-500 text-xs">
+                                    Permite respostas automáticas.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => alterarIaAtiva(!iaAtiva)}
+                                className={`
+                                    w-12 h-6 flex items-center rounded-md transition
+                                    ${iaAtiva ? 'bg-purple-600 justify-end' : 'bg-neutral-700 justify-start'}
+                                `}
+                            >
+                                <div className="w-5 h-5 bg-white rounded-md m-0.5"></div>
+                            </button>
+                        </div>
+                    </section>
 
                     {/* PROMPT SECTION */}
                     <section className="space-y-4">
@@ -152,35 +178,6 @@ export default function Modal({ setModalOpen }: ModalProps) {
 
                         </div>
                     </section>
-
-                    {/* SETTINGS SECTION */}
-                    <section className="space-y-4">
-                        <h2 className="text-sm uppercase tracking-wider text-neutral-400">
-                            Sistema
-                        </h2>
-
-                        <div className="bg-neutral-900 border border-neutral-800 rounded-md p-6 flex justify-between items-center">
-                            <div>
-                                <p className="text-white text-sm font-medium">
-                                    IA Ativa
-                                </p>
-                                <p className="text-neutral-500 text-xs">
-                                    Permite respostas automáticas.
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={() => alterarIaAtiva(!iaAtiva)}
-                                className={`
-                                    w-12 h-6 flex items-center rounded-md transition
-                                    ${iaAtiva ? 'bg-purple-600 justify-end' : 'bg-neutral-700 justify-start'}
-                                `}
-                            >
-                                <div className="w-5 h-5 bg-white rounded-md m-0.5"></div>
-                            </button>
-                        </div>
-                    </section>
-
                 </div>
 
                 {loading && <InternalLoading />}

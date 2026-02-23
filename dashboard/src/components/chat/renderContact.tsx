@@ -1,6 +1,7 @@
 import React from 'react'
 import { Lead } from '../../models'
 import { formatNumber } from '../../utils/formats'
+import { format, subDays } from 'date-fns'
 
 export default function RenderContact({ lead }: { lead: Lead }) {
 
@@ -18,6 +19,17 @@ export default function RenderContact({ lead }: { lead: Lead }) {
                 return "bg-neutral-600"
         }
     }
+
+    function formatUpdateAt(date: Date) {
+        const ontem = subDays(new Date(), 1);
+        const anteontem = subDays(new Date(), 2);
+        if(isNaN(date.getTime())) return "Data inválida";
+        if(date > ontem) return format(date, 'HH:mm');
+        if(date > anteontem) return format(date, 'dd/MM/yyyy HH:mm');
+        return format(date, 'dd/MM/yyyy');
+    }
+
+    const updatedAt = formatUpdateAt(new Date(lead.updated_at));
 
     return (
         <div className="
@@ -46,13 +58,35 @@ export default function RenderContact({ lead }: { lead: Lead }) {
                         {formatNumber(lead.numero)}
                     </p>
                     <span className="text-xs text-neutral-400">
-                        12:45
+                        {updatedAt}
                     </span>
                 </div>
 
                 <p className="text-sm text-neutral-400 truncate">
-                    Última mensagem enviada...
+                    Clique para ver detalhes do contato
                 </p>
+                <div className='flex flex-wrap gap-2 w-full mt-2'>
+                    {lead.interesse ? (
+                        <span className="text-xs bg-primary text-neutral-300 px-2 py-0.5 rounded-md">
+                            {lead.interesse}
+                        </span>
+                    ) : (
+                        <span className="text-xs bg-neutral-700 text-neutral-300 px-2 py-0.5 rounded-md">
+                            Sem interesse definido
+                        </span>
+                    )}
+                    {lead.ativo ? (
+                        <span className="text-xs bg-green-700 text-neutral-300 px-2 py-0.5 rounded-md">
+                            Ativo
+                        </span>
+                    ) : (
+                        <span className="text-xs bg-gray-700 text-neutral-300 px-2 py-0.5 rounded-md">
+                            Inativo
+                        </span>
+                    )
+
+                    }
+                </div>
             </div>
         </div>
     )

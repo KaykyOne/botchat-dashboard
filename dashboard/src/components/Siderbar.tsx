@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Lead } from '../models/lead';
 import RenderContact from './chat/renderContact'
 import { useRouter } from 'next/navigation';
+import { Mensagem } from '../models';
 
 type SiderbarProps = {
   leads: Lead[];
@@ -48,10 +49,19 @@ export default function Siderbar({ leads, setLead, setModalOpen }: SiderbarProps
 
         <button
           onClick={() => setModalOpen(true)}
-          className="p-3 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 transition"
+          className="p-3 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 transition flex justify-center items-center"
         >
           <span className="material-symbols-outlined">
             settings
+          </span>
+        </button>
+
+        <button
+          onClick={() => setLead(undefined as any)}
+          className="p-3 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 transition flex justify-center items-center"
+        >
+          <span className="material-symbols-outlined">
+            dashboard
           </span>
         </button>
 
