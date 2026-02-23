@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Lead } from "../models/index";
+import type { Lead, Historico } from "../models/index";
 
 async function selectAllLeads() {
     const usuario_id = localStorage.getItem('id_do_usuario');
@@ -9,7 +9,7 @@ async function selectAllLeads() {
     const { data, error } = await supabase
         .from('Leads')
         .select('*')
-        .eq('cliente_id', usuario_id)
+        .eq('cliente_id', usuario_id);
 
     Leads = data as Lead[]
     if (error) {
@@ -17,6 +17,23 @@ async function selectAllLeads() {
         return Leads
     }
     return Leads
+}
+
+async function selectHistory(lead_id: number) {
+
+    let historico: Historico[] = []
+
+    const { data, error } = await supabase
+        .from('Historico')
+        .select('*')
+        .eq('lead_id', lead_id);
+
+    historico = data as Historico[]
+    if (error) {
+        console.error(error)
+        return historico
+    }
+    return historico
 }
 
 async function updateLead(id:number, lead: Lead) {
@@ -45,4 +62,4 @@ async function deleteLead(id:number) {
     return data
 }
 
-export { selectAllLeads, updateLead, deleteLead };
+export { selectAllLeads, updateLead, deleteLead, selectHistory };

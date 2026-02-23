@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Lead } from '../models/lead';
 import RenderContact from './chat/renderContact'
 import { useRouter } from 'next/navigation';
+import { Mensagem } from '../models';
 
 type SiderbarProps = {
   leads: Lead[];
