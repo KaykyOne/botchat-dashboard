@@ -9,6 +9,8 @@ export interface Lead {
   numero: string;
   qualidade?: string | null;
   ia_ativa: boolean;
+  interesse?: string | null;
+  ativo: boolean;
   created_at: Date;
   updated_at: Date;
   historicos?: Historico[];

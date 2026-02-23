@@ -4,7 +4,9 @@ import { selectAllLeads, selectHistory } from '../../hooks/useLead'
 import Siderbar from '../../components/Siderbar'
 import Modal from '../../components/modal/Modal'
 import { Historico, Lead, Mensagem } from '../../models/index';
-import { format } from 'date-fns'
+import { format, set } from 'date-fns'
+import RenderLeads from './renderLeads'
+import Loading from '../../components/Loading'
 
 export default function Page() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -12,6 +14,7 @@ export default function Page() {
   const [lead, setLead] = useState<Lead | undefined>(undefined)
   const [modalOpen, setModalOpen] = useState(false)
   const diasJaCarregados: string[] = []
+  const [loading, setLoading] = useState(false)
   // Busca todos os leads ao carregar
 
   // const buscar = async () => {
@@ -21,22 +24,26 @@ export default function Page() {
   // }
 
   useEffect(() => {
+    setLoading(true)
     const fetch = async () => {
       const data = await selectAllLeads()
       setLeads(data || [])
+      setLoading(false)
     }
-
     fetch()
   }, [])
 
   useEffect(() => {
+    setLoading(true)
     const fetchMensagens = async () => {
       if (lead) {
         const data: Historico[] = await selectHistory(lead.id)
         setMensagens(data || [])
       }
+      setLoading(false)
     }
 
+    if (!lead) setMensagens([]);
     fetchMensagens()
   }, [lead])
 
@@ -46,7 +53,7 @@ export default function Page() {
       container.scrollTo(0, container.scrollHeight);
     }
   }, [mensagens])
-  // Renderiza cada mensagem
+
   const renderMensagem = (item: Historico, index: number) => {
 
     const autor = (item.autor).toLocaleLowerCase();
@@ -58,7 +65,7 @@ export default function Page() {
     diasJaCarregados.push(dia)
     return (
       <div key={index} className='w-full flex-col items-center'>
-      {!test && <p className='text-sm text-gray-400 w-full text-center my-4'>{dia}</p>}
+        {!test && <p className='text-sm text-gray-400 w-full text-center my-4'>{dia}</p>}
         <div
           key={index}
           className={`w-full flex ${(autor) === 'lead' ? 'justify-start' : 'justify-end'
@@ -78,19 +85,59 @@ export default function Page() {
     )
   }
 
+  if (!lead) {
+    return (
+      <div className="flex h-screen w-screen bg-neutral-900 text-neutral-100">
+
+        <Siderbar
+          leads={leads}
+          setLead={setLead}
+          setModalOpen={setModalOpen}
+        />
+
+
+        <main className="hidden relative md:flex flex-1 flex-col border-l border-neutral-800">
+
+          {loading ? (<Loading />) : (
+            <>
+              <div className="px-8 py-6 border-b border-neutral-800">
+                <h1 className="text-lg font-medium text-neutral-300">
+                  Dashboard
+                </h1>
+                <p className="text-sm text-neutral-500 mt-1">
+                  Selecione um lead para visualizar a conversa
+                </p>
+              </div>
+
+              <div className="flex-1 relative overflow-y-auto">
+                <img src={'/bg-robots.png'} className='w-screen h-screen absolute z-0 opacity-10' />
+                <div className='flex p-8 w-full h-full z-10'>
+                  <RenderLeads leads={leads} />
+                </div>
+              </div>
+            </>
+          )}
+        </main>
+
+
+        {modalOpen && <Modal setModalOpen={setModalOpen} />}
+      </div>
+    )
+  }
+
   return (
     <div className='flex flex-col w-screen h-screen overflow-hidden'>
       <div className='flex w-full h-full'>
         <Siderbar leads={leads} setLead={setLead} setModalOpen={setModalOpen} />
         <div className='flex-col w-full relative items-center hidden md:flex justify-center bg-neutral-900'>
           <img src={'/bg-robots.png'} className='w-screen h-screen absolute z-0 opacity-10' />
-          <div className='flex flex-col p-10 gap-3 w-full h-full overflow-y-auto z-10' id='mensagens-container'>
-            {mensagens.map(renderMensagem)}
+          <div className='flex flex-col p-10 gap-3 w-full h-full overflow-y-auto z-10 relative' id='mensagens-container'>
+            {!loading ? mensagens.map(renderMensagem) : <Loading />}
           </div>
         </div>
       </div>
 
       {modalOpen && <Modal setModalOpen={setModalOpen} />}
     </div>
-  )
+  );
 }
