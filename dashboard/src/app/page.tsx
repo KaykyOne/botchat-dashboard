@@ -35,16 +35,16 @@ export default function Page() {
     <div className="relative flex min-h-screen items-center justify-center bg-neutral-950 overflow-hidden">
 
       {/* Background spotlight */}
-      <div className="absolute w-[500px] h-[500px] bg-purple-600/20 rounded-md blur-3xl -top-40 -right-40" />
-      <div className="absolute w-[500px] h-[500px] bg-indigo-600/20 rounded-md blur-3xl -bottom-40 -left-40" />
+      <div className="absolute w-[500px] h-[500px] bg-purple-600/10 -top-40 -right-40" />
+      <div className="absolute w-[500px] h-[500px] bg-indigo-600/10 -bottom-40 -left-40" />
 
       <div className="relative w-full max-w-md px-6">
 
-        <div className="bg-neutral-900/70 backdrop-blur-xl border border-neutral-800 rounded-md shadow-[0_0_60px_rgba(0,0,0,0.6)] p-8 space-y-8">
+        <div className="bg-neutral-900 border border-neutral-700 p-8 space-y-8 rounded-lg">
 
           {/* Header */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold text-white tracking-tight">
+            <h1 className="text-2xl font-semibold text-white mb-2">
               Bem-vindo de volta
             </h1>
             <p className="text-sm text-neutral-400">
@@ -64,7 +64,7 @@ export default function Page() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-md py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition"
+                className="w-full bg-neutral-950 border border-neutral-700 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-purple-500 transition duration-200 rounded-lg"
               />
             </div>
 
@@ -77,7 +77,7 @@ export default function Page() {
                 placeholder="Senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-md py-3 pl-12 pr-12 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-600 transition"
+                className="w-full bg-neutral-950 border border-neutral-700 py-3 pl-12 pr-12 text-sm text-white outline-none focus:border-purple-500 transition duration-200 rounded-lg"
               />
               <button
                 type="button"
@@ -113,7 +113,7 @@ export default function Page() {
           <button
             onClick={handleClick}
             disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 py-3 rounded-md font-medium text-white flex items-center justify-center gap-2 transition"
+            className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 py-3 font-medium text-white flex items-center justify-center gap-2 transition duration-200 rounded-lg"
           >
             {!loading ? (
               <>
@@ -123,7 +123,7 @@ export default function Page() {
                 </span>
               </>
             ) : (
-              <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-md" />
+              <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white" />
             )}
           </button>
 

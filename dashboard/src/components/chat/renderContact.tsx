@@ -6,17 +6,17 @@ import { format, subDays } from 'date-fns'
 export default function RenderContact({ lead }: { lead: Lead }) {
 
     function getQualityStyle(qualidade: string | null | undefined) {
-        if (!qualidade) return "bg-neutral-600"
+        if (!qualidade) return "bg-neutral-700"
 
         switch (qualidade.toLowerCase()) {
             case 'fria':
-                return "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]"
+                return "bg-blue-600"
             case 'quente':
-                return "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
+                return "bg-amber-500"
             case 'finalizada':
-                return "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]"
+                return "bg-green-600"
             default:
-                return "bg-neutral-600"
+                return "bg-neutral-700"
         }
     }
 
@@ -34,58 +34,50 @@ export default function RenderContact({ lead }: { lead: Lead }) {
     return (
         <div className="
             w-full 
-            px-4 py-3 
+            px-6 py-5 
             flex items-center gap-4 
             cursor-pointer 
-            transition-all duration-200 
+            transition duration-200 
             hover:bg-neutral-800
-            border-b border-neutral-800
+            border-b border-neutral-700
         ">
             {/* Avatar */}
-            <div className="relative">
-                <div className={`w-12 h-12 rounded-md ${getQualityStyle(lead.qualidade)} flex items-center justify-center text-white font-semibold`}>
+            <div className="flex-shrink-0">
+                <div className={`w-12 h-12 ${getQualityStyle(lead.qualidade)} flex items-center justify-center text-white font-semibold text-sm rounded-lg`}>
                     {lead.numero?.slice(-2)}
                 </div>
-
-                {/* status dot */}
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-neutral-900 rounded-md"></span>
             </div>
 
             {/* Info */}
             <div className="flex flex-col flex-1 min-w-0">
-                <div className="flex justify-between items-center">
-                    <p className="font-medium text-white truncate">
+                <div className="flex justify-between items-center mb-1">
+                    <p className="font-medium text-white text-sm truncate">
                         {formatNumber(lead.numero)}
                     </p>
-                    <span className="text-xs text-neutral-400">
+                    <span className="text-xs text-neutral-500 ml-2 flex-shrink-0">
                         {updatedAt}
                     </span>
                 </div>
 
-                <p className="text-sm text-neutral-400 truncate">
-                    Clique para ver detalhes do contato
-                </p>
-                <div className='flex flex-wrap gap-2 w-full mt-2'>
+                <div className='flex flex-wrap gap-2 w-full'>
                     {lead.interesse ? (
-                        <span className="text-xs bg-primary text-neutral-300 px-2 py-0.5 rounded-md">
+                        <span className="text-xs bg-purple-700 text-neutral-200 px-2 py-1 rounded-md">
                             {lead.interesse}
                         </span>
                     ) : (
-                        <span className="text-xs bg-neutral-700 text-neutral-300 px-2 py-0.5 rounded-md">
-                            Sem interesse definido
+                        <span className="text-xs bg-neutral-700 text-neutral-400 px-2 py-1 rounded-md">
+                            -
                         </span>
                     )}
                     {lead.ativo ? (
-                        <span className="text-xs bg-green-700 text-neutral-300 px-2 py-0.5 rounded-md">
+                        <span className="text-xs bg-green-700 text-neutral-200 px-2 py-1 rounded-md">
                             Ativo
                         </span>
                     ) : (
-                        <span className="text-xs bg-gray-700 text-neutral-300 px-2 py-0.5 rounded-md">
+                        <span className="text-xs bg-neutral-700 text-neutral-400 px-2 py-1 rounded-md">
                             Inativo
                         </span>
-                    )
-
-                    }
+                    )}
                 </div>
             </div>
         </div>
