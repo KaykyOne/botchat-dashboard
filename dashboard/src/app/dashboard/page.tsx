@@ -32,7 +32,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex-1 relative overflow-y-auto">
-            <img src={'bg-robots.png'} className='w-screen h-screen absolute z-0 opacity-10' />
             <div className='flex flex-col p-8 w-full h-full z-10'>
               <MetricsDashboard metrics={metrics} />
             </div>
