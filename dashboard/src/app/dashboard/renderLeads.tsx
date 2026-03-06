@@ -21,7 +21,7 @@ export default function RenderLeads({ leads }: { leads: Lead[] }) {
         total: number
         lista: Lead[]
     }) => (
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6 z-10 max-h-[350px]">
+        <div className="border border-neutral-700 bg-neutral-900 p-8 z-10 max-h-[350px] rounded-lg">
             {/* Header */}
             <div className="flex items-baseline justify-between mb-6">
                 <div>
@@ -35,7 +35,7 @@ export default function RenderLeads({ leads }: { leads: Lead[] }) {
             </div>
 
             {/* Lista */}
-            <div className="flex flex-col divide-y divide-neutral-800 max-h-[260px] overflow-y-auto">
+            <div className="flex flex-col divide-y divide-neutral-700 max-h-[260px] overflow-y-auto">
                 {lista.length > 0 ? (
                     lista.map((l, index) => (
                         <div
