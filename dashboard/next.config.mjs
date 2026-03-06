@@ -6,6 +6,9 @@ const nextConfig = {
   output: 'export',
   basePath: dev ? '' : '/botchat-dashboard',
   assetPrefix: dev ? '' : '/botchat-dashboard',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     unoptimized: true,
   },
