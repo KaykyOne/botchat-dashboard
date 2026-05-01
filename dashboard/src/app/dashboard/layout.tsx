@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import Siderbar from '../../components/Siderbar'
 import Modal from '../../components/modal/Modal'
 import ChatWindow from '../../components/chat/ChatWindow'
+import Loading from '../../components/Loading'
 import { selectAllLeads } from '../../hooks/useLead'
 import { Lead } from '../../models/index'
 
@@ -31,19 +32,20 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen w-screen bg-neutral-900 text-neutral-100">
+    <div className="relative flex h-screen w-screen bg-[#0d0d0d] text-[#f0ede8]">
+      {loading && <Loading />}
+
       <Siderbar
         leads={leads}
         setLead={handleSetLead}
         setModalOpen={setModalOpen}
+        activeLeadId={lead?.id}
       />
 
       {lead ? (
         <ChatWindow lead={lead} onClose={() => handleSetLead(undefined)} />
       ) : (
-        <>
-          {children}
-        </>
+        children
       )}
 
       {modalOpen && <Modal setModalOpen={setModalOpen} />}

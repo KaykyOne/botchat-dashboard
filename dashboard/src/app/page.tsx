@@ -6,7 +6,7 @@ export default function Page() {
   const router = useRouter()
 
   useEffect(() => {
-    router.push('/landing')
+    router.replace('/login')
   }, [router])
 
   return null

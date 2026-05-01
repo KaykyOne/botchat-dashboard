@@ -1,15 +1,13 @@
 'use client'
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { supabase } from "./supabase";
 import { toast } from "react-toastify";
 
-// Custom hook - agora os hooks estão DENTRO de uma função
 const useQrCode = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [conectado, setConectado] = useState<boolean>(false);
 
   const getQrCode = async (tipo: string) => {
-
     const usuario_id = localStorage.getItem('id_do_usuario');
 
     const { data, error } = await supabase
@@ -22,21 +20,17 @@ const useQrCode = () => {
     if (!data) {
       await verificarConexao();
       return;
-    };
+    }
 
-    console.log('Buscando..');
     if (error) {
       console.error('Erro ao buscar QR Code:', error);
       return;
     }
+
     const qr_code = data?.qr_code || null;
     const test = data.status == "ONLINE" ? true : false
-    // if ((qrCode != qr_code) || (test != conectado)) {
-    //   toast.info("Status alterado!");
-    // }
     setConectado(test);
     setQrCode(qr_code);
-
   };
 
   const verificarConexao = async () => {
@@ -50,7 +44,7 @@ const useQrCode = () => {
       .single();
 
     if (error) {
-      console.error('Erro ao verificar conexão:', error);
+      console.error('Erro ao verificar conexao:', error);
       return;
     }
 
@@ -65,7 +59,6 @@ const desconectar = async () => {
   const usuario_id = localStorage.getItem('id_do_usuario');
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/disconnect/${usuario_id}`);
-  console.log(res);
   const response = await res.json();
   if (!res.ok) {
     toast.error("Erro ao desconectar!");
@@ -81,7 +74,7 @@ const conectar = async () => {
   const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/start/${usuario_id}`);
   const response = await res.json();
   if (!res.ok) {
-    toast.error("Erro ao solicitar nova conexão!");
+    toast.error("Erro ao solicitar nova conexao!");
     return;
   }
 
@@ -96,8 +89,8 @@ const pegarHistorico = async (lead_id: number) => {
     .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('Erro ao buscar histórico:', error);
-    toast.error('Erro ao buscar histórico');
+    console.error('Erro ao buscar historico:', error);
+    toast.error('Erro ao buscar historico');
     return [];
   }
   return data;
@@ -132,7 +125,7 @@ const atualizarPrompt = async (prompt: string) => {
     toast.error('Erro ao atualizar prompt');
     return null;
   }
-  return data;;
+  return data;
 }
 
 const atualizarAtividadeIa = async (ativo: boolean) => {
@@ -154,7 +147,7 @@ const atualizarAtividadeIa = async (ativo: boolean) => {
 const getIaAtividade = async () => {
   const usuario_id = localStorage.getItem('id_do_usuario');
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('Usuarios')
     .select('ia_ativa')
     .eq('id', usuario_id)

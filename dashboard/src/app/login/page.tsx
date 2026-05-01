@@ -2,10 +2,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { login } from '../../hooks/useLogin'
-import { ToastContainer } from 'react-toastify'
 
 export default function LoginPage() {
-
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -32,31 +30,24 @@ export default function LoginPage() {
   }, [])
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-neutral-950 overflow-hidden">
-
-      {/* Background spotlight */}
-      <div className="absolute w-[500px] h-[500px] bg-purple-600/10 -top-40 -right-40" />
-      <div className="absolute w-[500px] h-[500px] bg-indigo-600/10 -bottom-40 -left-40" />
-
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0d0d0d] px-6">
       <div className="relative w-full max-w-md px-6">
-
-        <div className="bg-neutral-900 border border-neutral-700 p-8 space-y-8 rounded-lg">
-
-          {/* Header */}
+        <div className="space-y-8 rounded-3xl border border-white/8 bg-[#121212] p-8">
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold text-white mb-2">
-              Bem-vindo de volta
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#5a5754]">
+              Acesso Seguro
+            </p>
+            <h1 className="mb-2 text-2xl font-medium text-[#f0ede8]">
+              Entre para gerenciar o bot
             </h1>
-            <p className="text-sm text-neutral-400">
-              Acesse sua central de gestão de leads
+            <p className="text-sm text-[#a09d98]">
+              Login direto, sem camadas de marketing no caminho.
             </p>
           </div>
 
-          {/* Inputs */}
           <div className="space-y-5">
-
             <div className="relative group">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-purple-500 transition">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#5a5754] transition group-focus-within:text-[#c96442]">
                 mail
               </span>
               <input
@@ -64,12 +55,12 @@ export default function LoginPage() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-neutral-950 border border-neutral-700 py-3 pl-12 pr-4 text-sm text-white outline-none focus:border-purple-500 transition duration-200 rounded-lg"
+                className="w-full rounded-2xl border border-white/8 bg-[#171717] py-3 pl-12 pr-4 text-sm text-[#f0ede8] outline-none transition duration-200 placeholder:text-[#5a5754] focus:border-[#c96442]"
               />
             </div>
 
             <div className="relative group">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-purple-500 transition">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#5a5754] transition group-focus-within:text-[#c96442]">
                 lock
               </span>
               <input
@@ -77,12 +68,12 @@ export default function LoginPage() {
                 placeholder="Senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-neutral-950 border border-neutral-700 py-3 pl-12 pr-12 text-sm text-white outline-none focus:border-purple-500 transition duration-200 rounded-lg"
+                className="w-full rounded-2xl border border-white/8 bg-[#171717] py-3 pl-12 pr-12 text-sm text-[#f0ede8] outline-none transition duration-200 placeholder:text-[#5a5754] focus:border-[#c96442]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#5a5754] transition hover:text-[#f0ede8]"
               >
                 <span className="material-symbols-outlined text-lg">
                   {showPassword ? 'visibility_off' : 'visibility'}
@@ -90,30 +81,23 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Remember */}
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer text-neutral-400">
+              <label className="flex cursor-pointer items-center gap-2 text-[#a09d98]">
                 <input
                   type="checkbox"
                   checked={saveDados}
                   onChange={(e) => setSalvarDados(e.target.checked)}
-                  className="accent-purple-600"
+                  className="accent-[#c96442]"
                 />
                 Lembrar dados
               </label>
-
-              <a className="text-neutral-500 hover:text-purple-500 transition cursor-pointer">
-                Esqueceu a senha?
-              </a>
             </div>
-
           </div>
 
-          {/* Button */}
           <button
             onClick={handleClick}
             disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 py-3 font-medium text-white flex items-center justify-center gap-2 transition duration-200 rounded-lg"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#c96442] py-3 font-medium text-white transition duration-200 hover:bg-[#d4714f] disabled:opacity-50"
           >
             {!loading ? (
               <>
@@ -123,20 +107,15 @@ export default function LoginPage() {
                 </span>
               </>
             ) : (
-              <div className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             )}
           </button>
-
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-neutral-600 mt-6">
-          © 2025 NovusTech
+        <p className="mt-6 text-center text-xs text-[#5a5754]">
+          (c) 2026 NovusTech
         </p>
-
       </div>
-
-      <ToastContainer limit={1} closeOnClick theme="colored" />
     </div>
   )
 }

@@ -1,43 +1,22 @@
 'use client'
-import React, { useState, useEffect } from 'react'
-import { getLeadsMetrics } from '../../hooks/useLead'
-import MetricsDashboard from '../../components/MetricsDashboard'
-import Loading from '../../components/Loading'
+import React from 'react'
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    setLoading(true)
-    const fetch = async () => {
-      const metricsData = await getLeadsMetrics()
-      setMetrics(metricsData)
-      setLoading(false)
-    }
-    fetch()
-  }, [])
-
   return (
-    <main className="hidden relative md:flex flex-1 flex-col border-l border-neutral-700">
-      {loading ? (<Loading />) : (
-        <>
-          <div className="px-8 py-8 border-b border-neutral-700">
-            <h1 className="text-lg font-medium text-neutral-300">
-              Dashboard
-            </h1>
-            <p className="text-sm text-neutral-500 mt-1">
-              Visão geral de seus leads
-            </p>
-          </div>
-
-          <div className="flex-1 relative overflow-y-auto">
-            <div className='flex flex-col p-8 w-full h-full z-10'>
-              <MetricsDashboard metrics={metrics} />
-            </div>
-          </div>
-        </>
-      )}
+    <main className="hidden md:flex flex-1 border-l border-white/6">
+      <div className="flex w-full items-center justify-center px-10">
+        <div className="max-w-md space-y-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#5a5754]">
+            Painel Operacional
+          </p>
+          <h1 className="text-3xl font-medium text-[#f0ede8]">
+            Selecione uma conversa para operar o bot.
+          </h1>
+          <p className="text-sm leading-6 text-[#a09d98]">
+            A coluna lateral concentra os leads. As configuracoes do bot, conexao do WhatsApp e controles sensiveis continuam disponiveis no menu de ajustes.
+          </p>
+        </div>
+      </div>
     </main>
   )
 }

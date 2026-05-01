@@ -2,11 +2,11 @@ import React from 'react'
 
 export default function Loading() {
     return (
-        <div className="inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 absolute">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="flex gap-3">
-                <div className="w-2 h-10 bg-blue-500 animate-pulse" />
-                <div className="w-2 h-10 bg-blue-500 animate-pulse" style={{ animationDelay: '0.2s' }} />
-                <div className="w-2 h-10 bg-blue-500 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                <div className="h-8 w-2 animate-pulse rounded-full bg-[#c96442]" />
+                <div className="h-10 w-2 animate-pulse rounded-full bg-[#c96442]" style={{ animationDelay: '0.2s' }} />
+                <div className="h-12 w-2 animate-pulse rounded-full bg-[#c96442]" style={{ animationDelay: '0.4s' }} />
             </div>
         </div>
     )
