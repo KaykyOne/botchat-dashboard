@@ -4,6 +4,7 @@ import { Lead } from '../../models/lead'
 import { selectHistory } from '../../hooks/useLead'
 import { motion } from 'framer-motion'
 import { formatNumber } from '../../utils/formats'
+import { Historico } from '../../models'
 
 type ChatWindowProps = {
   lead: Lead
@@ -11,13 +12,14 @@ type ChatWindowProps = {
 }
 
 export default function ChatWindow({ lead, onClose }: ChatWindowProps) {
-  const [mensagens, setMensagens] = useState<any[]>([])
+  const [mensagens, setMensagens] = useState<Historico[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const fetch = async () => {
       setLoading(true)
-      const historico = await selectHistory(lead.id)
+      const historico: Historico[] = await selectHistory(lead.id)
+      console.log(historico);
       setMensagens(historico || [])
       setLoading(false)
     }
@@ -84,21 +86,23 @@ export default function ChatWindow({ lead, onClose }: ChatWindowProps) {
           </div>
         ) : mensagens.length > 0 ? (
           mensagens.map((msg, idx) => (
-            <article key={idx} className="mb-4 rounded-2xl border border-white/6 bg-[#171717] p-4">
-              <div className="mb-2 flex items-center justify-between gap-4">
-                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#a09d98]">
-                  {msg.autor}
-                </p>
-                {formatMessageDate(msg.criado_em) && (
-                  <span className="text-xs text-[#5a5754]">
-                    {formatMessageDate(msg.criado_em)}
-                  </span>
-                )}
-              </div>
-              <div className="whitespace-pre-wrap text-sm leading-6 text-[#f0ede8]">
-                {msg.mensagem}
-              </div>
-            </article>
+            <div className={`${(msg.autor).toLocaleLowerCase().includes('lead') ? 'justify-start' : 'justify-end'} w-full flex`} key={idx} >
+              <article className="mb-4 rounded-2xl border max-w-[700px] border-white/6 bg-[#171717] p-4">
+                <div className="mb-2 flex items-center justify-between gap-4">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#a09d98]">
+                    {msg.autor}
+                  </p>
+                  {formatMessageDate(msg.criado_em) && (
+                    <span className="text-xs text-[#5a5754]">
+                      {formatMessageDate(msg.criado_em)}
+                    </span>
+                  )}
+                </div>
+                <div className="whitespace-pre-wrap text-sm leading-6 text-[#f0ede8]">
+                  {msg.mensagem}
+                </div>
+              </article>
+            </div>
           ))
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-[#5a5754]">

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-const apiKey = process.env.NEXT_PUBLIC_SUPABASE;
-const apiURL = process.env.NEXT_PUBLIC_APIURL;
+const apiKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const apiURL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 let client;
 
