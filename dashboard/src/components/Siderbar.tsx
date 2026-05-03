@@ -136,7 +136,7 @@ export default function Siderbar({ leads, setLead, setModalOpen, activeLeadId }:
       <div className='w-[30px] h-screen flex items-center justify-center'>
         <button
           onClick={() => setExpanded((value) => !value)}
-          className={` text-[#a09d98] hover:border-white/14 hover:text-[#f0ede8] cursor-pointer`}
+          className={` text-[#a09d98] hover:border-white/14 h-full w-full hover:text-[#f0ede8] cursor-pointer`}
           title={expanded ? 'Retrair sidebar' : 'Expandir sidebar'}
           aria-label={expanded ? 'Retrair sidebar' : 'Expandir sidebar'}
         >
