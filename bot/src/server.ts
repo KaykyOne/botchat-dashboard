@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import startBot from "./bots/bot";
 import express from 'express';
 const app = express();
-import { disconnect, start } from "./controller/bot.controller";
+import { disconnect, start } from "./controllers/bot.controller";
 import cors from 'cors';
 import { organizerUsuarios } from "./funcs/useBot";
 
@@ -15,8 +15,19 @@ app.use(cors({
     origin: '*'
 }));
 
-startBot();
-organizerUsuarios();
+app.get("/", (req, res) => {  
+    res.send("BotChat Dashboard API");
+});
+
+app.get("/status", (req, res) => {
+    res.send("BotChat Dashboard API is running");
+});
+
+app.get("/start-bot", (req, res) => {
+    startBot();
+    organizerUsuarios();
+    res.send("Bot started");
+});
 
 const PORT = Number(process.env.PORT) || 3009;
 app.listen(PORT, "0.0.0.0", () => {

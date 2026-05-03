@@ -5,6 +5,9 @@ import { defineConfig, env } from "prisma/config";
 
 const push = true
 
+console.log("Using DATABASE_URL:", env("DATABASE_URL"));
+console.log("Using DIRECT_URL:", env("DIRECT_URL"));
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {

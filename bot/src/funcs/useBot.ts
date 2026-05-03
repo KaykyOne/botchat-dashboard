@@ -1,6 +1,5 @@
 
 import { Historico, Leads } from '../../generated/prisma/client.js';
-const KEY: string | undefined = process.env.KEY;
 import prisma from '../../prisma/prisma.js';
 import useUsuario from './useUsuario.js';
 import { configurePrompt, promptColombo, Message } from './config.js';
@@ -174,11 +173,6 @@ export default function useBot() {
       historico.push({ role: 'system', content: `interesse atual do usuario:${lead.interesse}` });
     }
 
-    if (!KEY) {
-      console.error('Chave da API não definida.');
-      return 'Desculpe, estou enfrentando problemas técnicos no momento.';
-    }
-
     const res = await chatgpt.chat.completions.create({
       model: 'o4-mini',
       messages: historico
@@ -211,11 +205,6 @@ export default function useBot() {
     let mensagensParaAnalise = historicoFiltrado.slice(-10);
     mensagensParaAnalise.unshift({ role: 'system', content: promptColombo });
     if ((historicoFiltrado.length > 2 && historicoFiltrado.length < 4) || (Number.isInteger((mensagensParaAnalise.length / 5)))) {
-
-      if (!KEY) {
-        console.error('Chave da API não definida.');
-        return 'Desculpe, estou enfrentando problemas técnicos no momento.';
-      }
 
       const res = await chatgpt.chat.completions.create({
         model: 'o4-mini',

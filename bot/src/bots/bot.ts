@@ -3,7 +3,7 @@ import { startBot as startBaylears } from "./baileys/baileys";
 import { Usuarios } from "../../generated/prisma/client";
 import Funcoes from "../funcs/useUsuario";
 import { Usuario } from "../types/usuario";
-import { usuarios } from "../service/bot.service";
+import { usuarios } from "../services/bot.service";
 
 let iniciado = false;
 

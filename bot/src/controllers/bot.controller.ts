@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { disconnectBot, startBot } from "../service/bot.service";
+import { disconnectBot, startBot } from "../services/bot.service";
 
 async function disconnect(req: Request, res: Response) {
     const id = req.params.id
