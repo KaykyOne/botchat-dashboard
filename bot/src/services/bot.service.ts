@@ -1,5 +1,5 @@
 import fs from "fs";
-import { startBot as startBaylears, disconnectBot as disconnectBayleys } from "../bots/baileys/baileys";
+import { startBot as startBaylears, disconnectBot as disconnectBayleys } from "../bots/whatsapp_web/whatsapp_web";
 import { Usuario } from "../bots/bot";
 import path from "path";
 import useMensagem from '../funcs/useMensagem';

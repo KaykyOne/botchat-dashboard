@@ -10,6 +10,7 @@ import useBot from '../../funcs/useBot'
 import { Usuario } from '../bot'
 import pino from "pino";
 
+
 //Funções genericas
 //---------------------------------------------------------------------------
 const mensagensPendentes: { [key: string]: string } = {};
@@ -139,6 +140,7 @@ async function startBot(usuario: Usuario) {
                 } else {
                     usuario.tentativasReconexao = 1;
                     console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
+                    await funcoes.atualizarQrCode("", usuario.id, "BAILEYS");
                     startBot(usuario);
                     return;
                 }
