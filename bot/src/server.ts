@@ -1,12 +1,10 @@
-import dotenv from "dotenv";
 import startBot from "./bots/bot";
 import express from 'express';
 const app = express();
 import { disconnect, start } from "./controllers/bot.controller";
 import cors from 'cors';
+import { serverEnv } from "./env";
 import { organizerUsuarios } from "./funcs/useBot";
-
-dotenv.config();
 
 app.route("/disconnect/:id").get(disconnect);
 app.route("/start/:id").get(start);
@@ -24,12 +22,16 @@ app.get("/status", (req, res) => {
 });
 
 app.get("/start-bot", (req, res) => {
+    console.log("Iniciando o bot...");
     startBot();
     organizerUsuarios();
     res.send("Bot started");
 });
 
-const PORT = Number(process.env.PORT) || 3009;
+    startBot();
+    organizerUsuarios();
+
+const PORT = serverEnv.PORT;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Servidor rodando em http://0.0.0.0:${PORT}`);
 });

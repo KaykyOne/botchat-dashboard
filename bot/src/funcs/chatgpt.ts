@@ -1,7 +1,8 @@
 import OpenAI from "openai";
+import { openAiEnv } from "../env";
 
 const chatgpt = new OpenAI({
-  apiKey: process.env.OPENAI_KEY
+  apiKey: openAiEnv.OPENAI_KEY
 });
 
 export default chatgpt;
