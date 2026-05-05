@@ -1,63 +1,68 @@
-import { InstanceStatus } from '../../generated/prisma/enums.js';
-import fs from 'fs/promises';
-import { WhatsAppProvider } from '../../generated/prisma/enums.js';
-import prisma from '../../prisma/prisma.js';
+import fs from "fs/promises";
+import { InstanceStatus, WhatsAppProvider } from "../../generated/prisma/enums.js";
+import prisma from "../../prisma/prisma.js";
+import { createLogger } from "../logger";
+
+const logger = createLogger({ module: "useMensagem" });
 
 export default function useMensagem() {
-    async function atualizarQrCode(qr: string, usuario_id: number, provider:WhatsAppProvider) {
+    async function atualizarQrCode(qr: string, usuario_id: number, provider: WhatsAppProvider) {
+        const scopedLogger = logger.child({ usuarioId: usuario_id, provider });
 
         const instance = await prisma.whatsappInstances.findFirst({
-            where: { cliente_id: usuario_id, provider: provider}
+            where: { cliente_id: usuario_id, provider }
         });
 
         if (!instance) {
             await prisma.whatsappInstances.create({
                 data: {
                     cliente_id: usuario_id,
-                    provider: provider,
+                    provider,
                     qr_code: qr,
-                    status: 'CONNECTING',
+                    status: "CONNECTING",
                     session_path: `session-bot-${usuario_id}`
                 }
             });
+
+            scopedLogger.info({ qrLength: qr.length }, "Instancia criada e QR code persistido");
             return;
         }
-        else {
-            await prisma.whatsappInstances.updateMany({
-                where: { cliente_id: usuario_id, provider: provider },
-                data: { qr_code: qr }
-            })
-            return;
-        }
+
+        await prisma.whatsappInstances.updateMany({
+            where: { cliente_id: usuario_id, provider },
+            data: { qr_code: qr }
+        });
+
+        scopedLogger.info({ qrLength: qr.length }, "QR code atualizado");
     }
 
-    async function atualizarConecao(id_usuario: number, status: InstanceStatus, provider:WhatsAppProvider) {
+    async function atualizarConecao(id_usuario: number, status: InstanceStatus, provider: WhatsAppProvider) {
         await prisma.whatsappInstances.updateMany({
-            where: { cliente_id: id_usuario, provider: provider },
-            data: { status: status }
+            where: { cliente_id: id_usuario, provider },
+            data: { status }
         });
+
+        logger.info({ usuarioId: id_usuario, provider, status }, "Status da conexao atualizado");
     }
 
     async function testMensagem(msg: any, numero: string, client: any) {
-        if (numero === 'status@broadcast' || numero.endsWith('@g.us')) return false;
-        if (msg.fromMe || msg.key.fromMe) return false;
-        else return true;
+        if (numero === "status@broadcast" || numero.endsWith("@g.us")) return false;
+        if (msg.fromMe || msg.key?.fromMe) return false;
+        return true;
     }
 
     async function formatarNumero(numero: string, client: any) {
         if (!client) {
-            // console.log('Cliente não fornecido para formatar o número.');
-            return numero
-        };
-        if (numero.endsWith('@lid')) {
-            // console.log('numero como identificador de lead, resolvendo...');
+            return numero;
+        }
 
+        if (numero.endsWith("@lid")) {
             const jidReal = await client.getContactById(numero);
             if (jidReal) numero = jidReal;
         } else {
-            // console.log('numero padrão, formatando...');
-            numero = numero.split('@')[0];
+            numero = numero.split("@")[0];
         }
+
         return numero;
     }
 
@@ -67,13 +72,13 @@ export default function useMensagem() {
                 where: { id },
                 data: { enviado_por_ia: true }
             });
-            console.log('Status atualizado para enviada:', id);
-        } catch (error) {
-            console.error('Erro ao atualizar status:', error);
+
+            logger.info({ mensagemId: id }, "Mensagem marcada como enviada");
+        } catch (err) {
+            logger.error({ mensagemId: id, err }, "Erro ao atualizar status da mensagem");
         }
     }
 
-    // Função para buscar mensagens pendentes (substitui realtime do Supabase)
     async function buscarMensagensPendentes(usuario_id: number) {
         const mensagens = await prisma.mensagens.findMany({
             where: {
@@ -84,16 +89,17 @@ export default function useMensagem() {
                 destino: true
             }
         });
+
+        logger.debug({ usuarioId: usuario_id, total: mensagens.length }, "Mensagens pendentes consultadas");
         return mensagens;
     }
 
-    // Polling para verificar novas mensagens (substitui realtime do Supabase)
     async function iniciarPollingMensagens(usuario_id: number, funct: any, intervalo: number = 5000) {
         setInterval(async () => {
             const mensagens = await buscarMensagensPendentes(usuario_id);
 
             for (const msg of mensagens) {
-                const numeroFormatado = msg.destino.numero.includes('@c.us')
+                const numeroFormatado = msg.destino.numero.includes("@c.us")
                     ? msg.destino.numero
                     : `${msg.destino.numero}@c.us`;
 
@@ -106,15 +112,14 @@ export default function useMensagem() {
     async function deleteFolder(folderPath: string) {
         try {
             await fs.rm(folderPath, { recursive: true, force: true });
-            console.log(`Pasta "${folderPath}" apagada com sucesso!`);
+            logger.info({ folderPath }, "Pasta removida com sucesso");
         } catch (err) {
-            console.error('Erro ao apagar pasta:', err);
+            logger.error({ folderPath, err }, "Erro ao apagar pasta");
         }
     }
 
-    // Polling para verificar mudanças no QR Code (substitui realtime do Supabase)
     async function escutarQrCode(client: any, usuario_id: number, intervalo: number = 5000) {
-        console.log('Escutando atualizações de QR Code via polling...');
+        logger.info({ usuarioId: usuario_id, intervalo }, "Escutando atualizacoes de QR code via polling");
 
         let ultimoQrCode: string | null = null;
 
@@ -128,19 +133,17 @@ export default function useMensagem() {
                 if (instance && instance.qr_code !== ultimoQrCode) {
                     ultimoQrCode = instance.qr_code;
 
-                    if (instance.qr_code === '' || instance.qr_code === null) {
-                        console.log('Iniciando limpeza de pastas de autenticação...');
+                    if (instance.qr_code === "" || instance.qr_code === null) {
+                        logger.warn({ usuarioId: usuario_id }, "QR code limpo; reiniciando cliente e limpando autenticao local");
                         await client.destroy();
-                        await new Promise(res => setTimeout(res, 5000));
-                        await deleteFolder('.wwebjs_auth');
-                        await deleteFolder('.wwebjs_cache');
+                        await new Promise((res) => setTimeout(res, 5000));
+                        await deleteFolder(".wwebjs_auth");
+                        await deleteFolder(".wwebjs_cache");
                         client.initialize();
-                        console.clear();
-                        console.log('Bot reiniciado para novo login!');
                     }
                 }
-            } catch (error) {
-                console.error('Erro ao verificar QR Code:', error);
+            } catch (err) {
+                logger.error({ usuarioId: usuario_id, err }, "Erro ao verificar QR code");
             }
         }, intervalo);
     }

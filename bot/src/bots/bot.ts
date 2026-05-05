@@ -1,46 +1,53 @@
-import { startBot as startBaylears } from "./baileys/baileys";
-// import { startBot as startWhatsapp } from "./whatsapp_web/whatsapp_web";
 import { Usuarios } from "../../generated/prisma/client";
+import type { WhatsAppProvider } from "../../generated/prisma/enums.js";
 import Funcoes from "../funcs/useUsuario";
-import { Usuario } from "../types/usuario";
-import { usuarios } from "../services/bot.service";
+import { startBot as startManagedBot, usuarios } from "../services/bot.service";
+import { createLogger } from "../logger";
 
 let iniciado = false;
+const logger = createLogger({ module: "bot-bootstrap" });
 
-const startBot = async () => {
+const startBot = async (provider?: WhatsAppProvider | string) => {
     const search: Usuarios[] = await Funcoes().getAllUsers();
-    if (search.length > 0) {
-        search.forEach(user => {
-            usuarios.push({ id: user.id, cliente: null, qrCode: null, ativado: false })
-        });
+    const scopedLogger = createLogger({ module: "bot-bootstrap", provider: provider ?? "DEFAULT" });
 
-        if (usuarios.length === 0) {
-            console.log("Nenhum usuário ativo com IA encontrada.");
-            process.exit(0);
+    if (search.length <= 0) {
+        scopedLogger.warn("Nenhum bot encontrado para iniciar");
+        return;
+    }
+
+    const resultados = await Promise.allSettled(
+        search.map(async (usuario) => {
+            scopedLogger.info({ usuarioId: usuario.id }, "Iniciando cliente do usuario");
+            return startManagedBot(usuario.id, provider);
+        })
+    );
+
+    resultados.forEach((resultado, index) => {
+        const usuario = search[index];
+
+        if (resultado.status === "fulfilled") {
+            scopedLogger.info({ usuarioId: usuario?.id }, "Cliente inicializado");
+            return;
         }
 
-        usuarios.forEach(usuario => {
-            startBaylears(usuario);
-        });
+        scopedLogger.error({ usuarioId: usuario?.id, err: resultado.reason }, "Falha ao inicializar cliente");
+    });
 
-        console.log("Todos os bots iniciado!");
-        iniciado = true;
-        return;
-    }else{
-        console.log("Nenhum bot encontrado!");
-        return;
-    }
-}
+    scopedLogger.info({ totalUsuarios: search.length }, "Rotina global de inicializacao concluida");
+    iniciado = true;
+};
 
 setInterval(() => {
-    if(!iniciado) return;
-    const filter = usuarios.filter(user => user.ativado === true);
-    if(filter.length == 0){
-        console.error("Todos os usuários foram desligados!");
-    }else{
-        console.log(`Número de usuários ativos: ${usuarios.length}`);
+    if (!iniciado) return;
+
+    const ativos = usuarios.filter((user) => user.ativado === true);
+
+    if (ativos.length === 0) {
+        logger.error("Todos os usuarios foram desligados");
+    } else {
+        logger.debug({ ativos: ativos.length, registrados: usuarios.length }, "Resumo periodico de usuarios");
     }
-}, 10000)
+}, 10000);
 
 export default startBot;
-export { type Usuario }

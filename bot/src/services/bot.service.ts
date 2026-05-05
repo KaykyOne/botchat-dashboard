@@ -1,60 +1,102 @@
 import fs from "fs";
-import { startBot as startBaylears, disconnectBot as disconnectBayleys } from "../bots/whatsapp_web/whatsapp_web";
-import { Usuario } from "../bots/bot";
-import path from "path";
-import useMensagem from '../funcs/useMensagem';
+import type { WhatsAppProvider } from "../../generated/prisma/enums.js";
+import { defaultProvider, getProviderAdapter } from "../bots/providers";
+import type { Usuario } from "../types/usuario";
+import useMensagem from "../funcs/useMensagem";
+import { createLogger } from "../logger";
 
-const root = process.cwd();
 const { atualizarQrCode } = useMensagem();
+const logger = createLogger({ module: "bot-service" });
 
-let usuarios: Usuario[] = []
+let usuarios: Usuario[] = [];
 
-async function disconnectBot(id: number) {
-    try {
-        const user = usuarios.find(e => e.id == id);
-        if (!user) return;
+type DisconnectBotOptions = {
+    resetSession?: boolean;
+};
 
-        // Chamar função de disconnect completa do Baileys
-        await disconnectBayleys(user);
-        
-        await new Promise(r => setTimeout(r, 4000))
+async function removeProviderSessions(provider: WhatsAppProvider, id: number) {
+    const adapter = getProviderAdapter(provider);
 
-        const namePathBaileys = path.join(root, "src/bots/baileys/sessions", `bot-baileys-${id}`);
-        const namePathWhatsappWeb = path.join(root, "src/bots/whatsapp_web/sessions", `bot-whatsapp_web-${id}`);
-
-        if (fs.existsSync(namePathBaileys)) {
-            fs.rmSync(namePathBaileys, { recursive: true, force: true });
+    for (const sessionPath of adapter.getSessionPaths(id)) {
+        if (!fs.existsSync(sessionPath)) {
+            continue;
         }
 
-        if (fs.existsSync(namePathWhatsappWeb)) {
-            fs.rmSync(namePathWhatsappWeb, { recursive: true, force: true });
-        }
-        
-        await atualizarQrCode("", user.id, "BAILEYS");
-        usuarios = usuarios.filter(e => e.id != id);
-        console.log(`✅ Usuário ${id} removido da lista de ativos`);
-        return;
+        fs.rmSync(sessionPath, { recursive: true, force: true });
+        logger.info({ usuarioId: id, provider, sessionPath }, "Sessao do provider removida");
     }
-    catch (erro) {
-        console.error("Erro ao desconectar no service!", erro);
-        usuarios = usuarios.filter(e => e.id != id);
-        return;
-    }
-
 }
 
-async function startBot(id: number) {
+async function disconnectRegisteredUser(user: Usuario, options?: DisconnectBotOptions) {
+    const adapter = getProviderAdapter(user.provider);
+
+    logger.info({ usuarioId: user.id, provider: user.provider }, "Iniciando desconexao do usuario");
+    await adapter.disconnect(user);
+    await atualizarQrCode("", user.id, user.provider);
+
+    if (options?.resetSession) {
+        await removeProviderSessions(user.provider, user.id);
+    }
+
+    usuarios = usuarios.filter((usuario) => usuario.id !== user.id);
+    logger.info(
+        { usuarioId: user.id, provider: user.provider, ativosRestantes: usuarios.length },
+        "Usuario removido da lista de ativos"
+    );
+}
+
+async function disconnectBot(id: number, options?: DisconnectBotOptions) {
+    try {
+        const user = usuarios.find((e) => e.id === id);
+
+        if (!user) {
+            logger.warn({ usuarioId: id }, "Usuario nao encontrado para desconexao");
+            return;
+        }
+
+        await disconnectRegisteredUser(user, options);
+    } catch (err) {
+        logger.error({ usuarioId: id, err }, "Erro ao desconectar usuario no service");
+        usuarios = usuarios.filter((e) => e.id !== id);
+    }
+}
+
+async function startBot(id: number, providerInput?: WhatsAppProvider | string) {
+    const provider = getProviderAdapter(providerInput).provider;
+    const existente = usuarios.find((usuario) => usuario.id === id);
+
+    if (existente) {
+        if (existente.provider === provider) {
+            logger.warn({ usuarioId: id, provider }, "Usuario ja possui cliente registrado no provider solicitado");
+            return;
+        }
+
+        logger.info(
+            { usuarioId: id, providerAtual: existente.provider, novoProvider: provider },
+            "Trocando provider do usuario"
+        );
+        await disconnectRegisteredUser(existente);
+    }
+
+    const adapter = getProviderAdapter(provider);
     const user: Usuario = {
-        id: id,
+        id,
         qrCode: null,
         cliente: null,
-        ativado: false
-    }
+        ativado: false,
+        provider
+    };
 
-    const res: Usuario | void = await startBaylears(user);
+    logger.info({ usuarioId: id, provider }, "Iniciando usuario via service");
+    const res: Usuario | void = await adapter.start(user);
+
     if (res != null) {
         usuarios.push(res);
+        logger.info(
+            { usuarioId: id, provider, totalRegistrados: usuarios.length, providerPadrao: defaultProvider },
+            "Usuario adicionado a lista de ativos"
+        );
     }
 }
 
-export { disconnectBot, startBot, usuarios }
+export { disconnectBot, startBot, usuarios };

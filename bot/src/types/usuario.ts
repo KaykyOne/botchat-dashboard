@@ -1,3 +1,4 @@
+import type { WhatsAppProvider } from "../../generated/prisma/enums.js";
 import { WASocket } from "@whiskeysockets/baileys";
 import { Client } from "whatsapp-web.js";
 
@@ -6,7 +7,8 @@ type Usuario = {
     cliente: WASocket | Client | null,
     qrCode: string | null,
     tentativasReconexao?: number,
-    ativado:boolean,
+    ativado: boolean,
+    provider: WhatsAppProvider,
 }
 
 export { type Usuario }

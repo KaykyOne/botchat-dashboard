@@ -1,191 +1,185 @@
 import makeWASocket, {
-    useMultiFileAuthState,
     DisconnectReason,
     WASocket,
-    downloadContentFromMessage
-} from '@whiskeysockets/baileys'
-import fs from 'fs'
-import useMensagem from '../../funcs/useMensagem'
-import useBot from '../../funcs/useBot'
-import { Usuario } from '../bot'
+    downloadContentFromMessage,
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion
+} from "@whiskeysockets/baileys";
+import fs from "fs";
 import pino from "pino";
+import useBot from "../../funcs/useBot";
+import useMensagem from "../../funcs/useMensagem";
+import { createLogger } from "../../logger";
+import type { Usuario } from "../../types/usuario";
 
-
-//Funções genericas
-//---------------------------------------------------------------------------
-const mensagensPendentes: { [key: string]: string } = {};
-const timeouts: { [key: string]: NodeJS.Timeout } = {};
-
+const mensagensPendentes: Record<string, string> = {};
+const timeouts: Record<string, NodeJS.Timeout> = {};
 const TEMPO_ESPERA = 15000;
+
+const { version } = await fetchLatestBaileysVersion();
 
 function juntarMensagens(numero: string, texto: string) {
     mensagensPendentes[numero] = mensagensPendentes[numero]
-        ? mensagensPendentes[numero] + '\n' + texto
+        ? `${mensagensPendentes[numero]}\n${texto}`
         : texto;
 
-    if (timeouts[numero]) clearTimeout(timeouts[numero]);
+    if (timeouts[numero]) {
+        clearTimeout(timeouts[numero]);
+    }
 }
 
-const testTentativasDeReconexao = (a: number) => {
-    if (a > 5) return false;
-    else return true;
-}
-//---------------------------------------------------------------------------
+const testTentativasDeReconexao = (tentativa: number) => tentativa <= 5;
 
 async function baixarAudio(msg: any, caminho: string) {
-    if (!msg.message?.audioMessage && !msg.message?.ptt) return null
+    if (!msg.message?.audioMessage && !msg.message?.ptt) return null;
 
-    const stream = await downloadContentFromMessage(msg.message.audioMessage || msg.message.ptt, 'audio')
-    const buffer: Buffer[] = []
+    const stream = await downloadContentFromMessage(msg.message.audioMessage || msg.message.ptt, "audio");
+    const buffer: Buffer[] = [];
 
     for await (const chunk of stream) {
-        buffer.push(chunk)
+        buffer.push(chunk);
     }
 
-    const arquivo = Buffer.concat(buffer)
-    fs.writeFileSync(caminho, arquivo)
-    return arquivo
+    const arquivo = Buffer.concat(buffer);
+    fs.writeFileSync(caminho, arquivo);
+    return arquivo;
 }
 
 function extractNumero(msg: any, sock: WASocket): string | null {
-    const raw =
-        msg.key.fromMe
-            ? sock.user?.id
-            : msg.key.participant ||
-            msg.key.participantAlt ||
-            msg.key.remoteJidAlt ||
-            msg.message?.extendedTextMessage?.contextInfo?.participant ||
-            msg.key.remoteJid
+    const raw = msg.key.fromMe
+        ? sock.user?.id
+        : msg.key.participant
+        || msg.key.participantAlt
+        || msg.key.remoteJidAlt
+        || msg.message?.extendedTextMessage?.contextInfo?.participant
+        || msg.key.remoteJid;
 
-    if (!raw) return null
+    if (!raw) return null;
 
-    const numero = raw.split('@')[0].replace(/\D/g, '')
+    const numero = raw.split("@")[0].replace(/\D/g, "");
 
-    if (!numero.startsWith('55')) return null
+    if (!numero.startsWith("55")) return null;
 
-    return numero
+    return numero;
 }
 
 async function startBot(usuario: Usuario) {
 
+
+    const baseLogger = createLogger({ module: "baileys", provider: "BAILEYS" });
+
+    baseLogger.info({ version }, "Versao do Baileys obtida");
+
     if (!usuario.id) {
-        console.log(`id não encontrado!`)
-        return
+        baseLogger.warn("Tentativa de iniciar bot sem id de usuario");
+        return;
     }
 
-    const usuario_id = usuario.id;
+    const usuarioId = usuario.id;
+    const authPath = `./src/bots/baileys/sessions/bot-baileys-${usuarioId}`;
+    const botLogger = baseLogger.child({ usuarioId, authPath });
+    const { state, saveCreds } = await useMultiFileAuthState(authPath);
+    const funcoes = useMensagem();
+    const botFuncs = useBot();
 
-    console.log(`Iniciando bot para o usuário ${usuario_id}`)
-
-    const { state, saveCreds } = await useMultiFileAuthState(
-        `./src/bots/baileys/sessions/bot-baileys-${usuario_id}`
-    )
-
-    const funcoes = useMensagem()
-    const botFuncs = useBot()
+    botLogger.info("Iniciando cliente do Baileys");
 
     const sock = makeWASocket({
+        version,
         logger: pino({ level: "error" }),
         auth: state,
         printQRInTerminal: false
-    })
+    });
 
     usuario.cliente = sock;
-    sock.ev.on('creds.update', saveCreds)
+    sock.ev.on("creds.update", saveCreds);
 
-    let tentativasDeReconexao = 0
-
-    // ------------------
-    // CONEXÃO / QR / STATUS
-    // ------------------
-
-    sock.ev.on('connection.update', async update => {
-        const { connection, lastDisconnect, qr } = update
+    sock.ev.on("connection.update", async (update) => {
+        const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
             usuario.qrCode = qr;
-            await funcoes.atualizarQrCode(qr, usuario_id, "BAILEYS");
-            console.log(`QR code do usuário ${usuario_id} atualizado!`)
-            // QrCodeTerminal.generate(qr, { small: true })
             usuario.ativado = true;
+            await funcoes.atualizarQrCode(qr, usuarioId, "BAILEYS");
+            botLogger.info({ qrLength: qr.length }, "QR code atualizado");
         }
 
-        if (connection === 'open') {
-            console.log(`✅ Bot do usuário ${usuario_id} está online`)
-            await funcoes.atualizarConecao(usuario_id, 'ONLINE', "BAILEYS");
+        if (connection === "open") {
             usuario.tentativasReconexao = 0;
+            await funcoes.atualizarConecao(usuarioId, "ONLINE", "BAILEYS");
+            botLogger.info("Cliente online");
         }
 
-        if (connection === 'close') {
-            const statusCode = (lastDisconnect?.error as any)?.output?.statusCode
+        if (connection === "close") {
+            const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-            const shouldReconnect =
-                statusCode !== DisconnectReason.loggedOut
-
-            console.log(`❌ Bot do usuário ${usuario_id} desconectado`, statusCode)
             usuario.cliente = null;
             usuario.qrCode = null;
-            await funcoes.atualizarConecao(usuario_id, 'OFFLINE', "BAILEYS");
-            if (usuario.ativado) {
-                if (usuario.tentativasReconexao) {
-                    usuario.tentativasReconexao = usuario.tentativasReconexao + 1;
-                    const test = testTentativasDeReconexao(usuario.tentativasReconexao);
-                    if (test == true) {
-                        console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
-                        startBot(usuario);
-                        return;
-                    }
-                    return;
+            await funcoes.atualizarConecao(usuarioId, "OFFLINE", "BAILEYS");
+            botLogger.warn({ statusCode, shouldReconnect }, "Cliente desconectado");
 
-                } else {
-                    usuario.tentativasReconexao = 1;
-                    console.log(`Tentando reconectar o bot do usuario ${usuario.id} pela ${usuario.tentativasReconexao}`);
-                    await funcoes.atualizarQrCode("", usuario.id, "BAILEYS");
-                    startBot(usuario);
+            if (!usuario.ativado || !shouldReconnect) {
+                return;
+            }
+
+            if (usuario.tentativasReconexao) {
+                usuario.tentativasReconexao += 1;
+
+                if (!testTentativasDeReconexao(usuario.tentativasReconexao)) {
+                    botLogger.error(
+                        { tentativa: usuario.tentativasReconexao },
+                        "Limite de reconexoes atingido"
+                    );
                     return;
                 }
-            } else {
 
+                botLogger.warn(
+                    { tentativa: usuario.tentativasReconexao },
+                    "Tentando reconectar cliente"
+                );
+                startBot(usuario);
                 return;
             }
+
+            usuario.tentativasReconexao = 1;
+            await funcoes.atualizarQrCode("", usuarioId, "BAILEYS");
+            botLogger.warn({ tentativa: usuario.tentativasReconexao }, "Primeira tentativa de reconexao");
+            startBot(usuario);
         }
-    })
+    });
 
-    // ------------------
-    // MENSAGENS
-    // ------------------
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+        botLogger.info({ type, total: messages.length }, "messages.upsert disparado");
 
-    sock.ev.on('messages.upsert', async ({ messages, type }) => {
-        if (type !== 'notify') return
-        // console.log(type);
+        if (type !== "notify") return;
 
-        const msg = messages[0]
-        // console.log(msg)
+        const msg = messages[0];
+        if (msg.key.remoteJid?.endsWith("@g.us")) return;
+        if (!msg.message) return;
 
-        if (msg.key.remoteJid?.endsWith('@g.us')) return
-        if (!msg.message) return
-        const textoMensagem = msg.message.conversation ||
-            msg.message.extendedTextMessage?.text || '';
-
+        const textoMensagem = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         const numero = extractNumero(msg, sock);
         const remoteJid = msg.key.remoteJid;
-        // console.log(numero);
+
         if (!numero || !remoteJid) return;
 
-        if ((msg.key.fromMe) && !textoMensagem.includes("*BOT IDEALZINHO:*")) {
-            const lead = await botFuncs.getLead(numero, usuario_id);
+        if (msg.key.fromMe && !textoMensagem.includes("*BOT IDEALZINHO:*")) {
+            const lead = await botFuncs.getLead(numero, usuarioId);
             if (lead?.id) {
-                await botFuncs.mudarAtividadeIA(lead?.id, false);
+                await botFuncs.mudarAtividadeIA(lead.id, false);
             } else {
                 return;
             }
         }
 
-        if (msg.key.fromMe) return
-        const me = sock.user?.id
-        if (numero == me) return;
+        if (msg.key.fromMe) return;
 
-        //erro grave q eu teria q corrigir, mas ainda n descorbri como, por conta do bot ficar enviando mensagem para sim mesmo, pq eu n sei
+        const me = sock.user?.id
+            ? sock.user.id.split(":")[0].replace(/\D/g, "")
+            : undefined;
+        if (numero === me) return;
+
         if (numero.includes("5517997437646")) return;
         if (numero.includes("5567981368080")) return;
         if (numero.includes("556781368080")) return;
@@ -195,59 +189,48 @@ async function startBot(usuario: Usuario) {
 
         if (msg.message.conversation || msg.message.extendedTextMessage?.text) {
             texto = textoMensagem;
-        } else if (msg.message?.audioMessage) {
-            const path = `./src/bots/baileys/audios/${numero}.ogg`
+        } else if (msg.message.audioMessage) {
+            const path = `./src/bots/baileys/audios/${numero}.ogg`;
             await baixarAudio(msg, path);
             texto = await botFuncs.converterAudioEmTexto(path) || "";
-            console.log(texto);
+            botLogger.debug({ from: remoteJid, transcriptLength: texto.length }, "Audio transcrito");
         }
 
-
-
-        const timestamp = Number(msg.messageTimestamp)
-        const agora = Math.floor(Date.now() / 1000)
-        if (agora - timestamp > 10) return
+        const timestamp = Number(msg.messageTimestamp);
+        const agora = Math.floor(Date.now() / 1000);
+        if (agora - timestamp > 10) return;
 
         try {
-            const res = await funcoes.testMensagem(msg, numero, sock)
-            if (!res) return
+            const podeResponder = await funcoes.testMensagem(msg, numero, sock);
+            if (!podeResponder) return;
 
-            juntarMensagens(numero, texto)
+            juntarMensagens(numero, texto);
 
             timeouts[numero] = setTimeout(async () => {
-                const mensagens = mensagensPendentes[numero]
-                delete mensagensPendentes[numero]
-                delete timeouts[numero]
+                const mensagens = mensagensPendentes[numero];
+                delete mensagensPendentes[numero];
+                delete timeouts[numero];
 
-                const resposta = await botFuncs.responderPergunta(
-                    mensagens,
-                    numero,
-                    usuario_id,
-                    sock
-                )
+                const resposta = await botFuncs.responderPergunta(mensagens, numero, usuarioId, sock);
 
-                if (!resposta) return
+                if (!resposta) return;
 
-                const partes = resposta.includes('(SEPARAR)')
-                    ? resposta.split('(SEPARAR)')
-                    : [resposta]
+                const partes = resposta.includes("(SEPARAR)")
+                    ? resposta.split("(SEPARAR)")
+                    : [resposta];
 
-                // await sock.sendMessage(numero, { text: `*BOT IDEALZINHO:*\n${pegarVicioAleatorio()}` })
-                for (const p of partes) {
-                    sock.sendPresenceUpdate('composing', remoteJid);
-                    await new Promise(r => setTimeout(r, 4000))
-                    await sock.sendMessage(remoteJid, {
-                        text: `*BOT IDEALZINHO:*\n${p}`
-                    })
-                    sock.sendPresenceUpdate('paused', remoteJid);
-                    await new Promise(r => setTimeout(r, 20000))
+                for (const parte of partes) {
+                    await sock.sendPresenceUpdate("composing", remoteJid);
+                    await new Promise((resolve) => setTimeout(resolve, 4000));
+                    await sock.sendMessage(remoteJid, { text: `*BOT IDEALZINHO:*\n${parte}` });
+                    await sock.sendPresenceUpdate("paused", remoteJid);
+                    await new Promise((resolve) => setTimeout(resolve, 20000));
                 }
-
-            }, TEMPO_ESPERA)
+            }, TEMPO_ESPERA);
         } catch (err) {
-            console.error(err)
+            botLogger.error({ err, from: remoteJid }, "Erro ao processar mensagem recebida");
         }
-    })
+    });
 
     return usuario;
 }
@@ -255,56 +238,43 @@ async function startBot(usuario: Usuario) {
 async function disconnectBot(usuario: Usuario) {
     if (!usuario || !usuario.cliente) return;
 
-    try {
-        const sock = usuario.cliente;
-        const usuario_id = usuario.id;
-        if (sock == null) {
-            console.log(`Socket do usuário ${usuario_id} já está nulo, pulando desconexão.`);
-            return;
-        }
-        if (!('ev' in sock)) {
-            console.log(`Socket do usuário ${usuario_id} não é uma instância válida de WASocket.`);
-            return;
-        }
-        if (sock.ev == null) {
-            console.log(`Eventos do socket do usuário ${usuario_id} já estão nulos, pulando remoção de listeners.`);
-        }
-        console.log(`🔌 Desconectando bot do usuário ${usuario_id}`);
+    const botLogger = createLogger({
+        module: "baileys",
+        provider: "BAILEYS",
+        usuarioId: usuario.id
+    });
 
-        // Marcar como não ativado para impedir reconexão automática
+    try {
+        const sock = usuario.cliente as WASocket;
+
+        if (!("ev" in sock)) {
+            botLogger.warn("Socket nao e uma instancia valida de WASocket");
+            return;
+        }
+
         usuario.ativado = false;
 
-        // Cancelar todos os timeouts pendentes
-        Object.keys(timeouts).forEach(numero => {
-            if (timeouts[numero]) {
-                clearTimeout(timeouts[numero]);
-                delete timeouts[numero];
-            }
+        Object.keys(timeouts).forEach((numero) => {
+            clearTimeout(timeouts[numero]);
+            delete timeouts[numero];
         });
 
-        // Limpar mensagens pendentes
-        Object.keys(mensagensPendentes).forEach(numero => {
+        Object.keys(mensagensPendentes).forEach((numero) => {
             delete mensagensPendentes[numero];
         });
 
-        // Remover todos os listeners do socket
         (sock.ev as any).removeAllListeners();
-
-        // Fazer logout e fechar a conexão
-        await sock.logout();
-        await sock.end(undefined);
+        sock.end(undefined);
 
         usuario.cliente = null;
         usuario.qrCode = null;
 
-        console.log(`✅ Bot do usuário ${usuario_id} foi desconectado com sucesso`);
-        return;
-    } catch (erro) {
-        console.error(`Erro ao desconectar bot do usuário:`, erro);
+        botLogger.info("Cliente desconectado com sucesso");
+    } catch (err) {
+        botLogger.error({ err }, "Erro ao desconectar cliente");
         usuario.cliente = null;
         usuario.ativado = false;
-        return;
     }
 }
 
-export { startBot, disconnectBot }
+export { disconnectBot, startBot };
