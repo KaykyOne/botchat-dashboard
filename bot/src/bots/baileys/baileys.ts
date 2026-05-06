@@ -6,6 +6,7 @@ import makeWASocket, {
     fetchLatestBaileysVersion
 } from "@whiskeysockets/baileys";
 import fs from "fs";
+import path from "path";
 import pino from "pino";
 import useBot from "../../funcs/useBot";
 import useMensagem from "../../funcs/useMensagem";
@@ -41,6 +42,7 @@ async function baixarAudio(msg: any, caminho: string) {
     }
 
     const arquivo = Buffer.concat(buffer);
+    fs.mkdirSync(path.dirname(caminho), { recursive: true });
     fs.writeFileSync(caminho, arquivo);
     return arquivo;
 }
@@ -150,85 +152,170 @@ async function startBot(usuario: Usuario) {
     });
 
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
-        botLogger.info({ type, total: messages.length }, "messages.upsert disparado");
+        botLogger.debug({ type, totalMessages: messages.length }, "Evento recebido");
 
-        if (type !== "notify") return;
+        if (type !== "notify") {
+            botLogger.debug("Ignorado: tipo diferente de notify");
+            return;
+        }
 
         const msg = messages[0];
-        if (msg.key.remoteJid?.endsWith("@g.us")) return;
-        if (!msg.message) return;
+        botLogger.debug({ msgKey: msg?.key }, "Mensagem capturada");
 
-        const textoMensagem = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
+        if (msg.key.remoteJid?.endsWith("@g.us")) {
+            botLogger.debug({ jid: msg.key.remoteJid }, "Ignorado: grupo");
+            return;
+        }
+
+        if (!msg.message) {
+            botLogger.debug("Ignorado: mensagem vazia");
+            return;
+        }
+
+        const textoMensagem =
+            msg.message.conversation ||
+            msg.message.extendedTextMessage?.text ||
+            "";
+
         const numero = extractNumero(msg, sock);
         const remoteJid = msg.key.remoteJid;
 
-        if (!numero || !remoteJid) return;
+        botLogger.debug({ numero, remoteJid }, "Dados extraídos");
+
+        if (!numero || !remoteJid) {
+            botLogger.warn("Ignorado: numero ou remoteJid inválido");
+            return;
+        }
 
         if (msg.key.fromMe && !textoMensagem.includes("*BOT IDEALZINHO:*")) {
+            botLogger.debug({ numero }, "Mensagem enviada por mim (fora do padrão bot)");
+
             const lead = await botFuncs.getLead(numero, usuarioId);
+
             if (lead?.id) {
+                botLogger.debug({ leadId: lead.id }, "Lead encontrado, desativando IA");
                 await botFuncs.mudarAtividadeIA(lead.id, false);
             } else {
+                botLogger.warn({ numero }, "Lead não encontrado");
                 return;
             }
         }
 
-        if (msg.key.fromMe) return;
+        if (msg.key.fromMe) {
+            botLogger.debug("Ignorado: mensagem enviada por mim");
+            return;
+        }
 
         const me = sock.user?.id
             ? sock.user.id.split(":")[0].replace(/\D/g, "")
             : undefined;
-        if (numero === me) return;
 
-        if (numero.includes("5517997437646")) return;
-        if (numero.includes("5567981368080")) return;
-        if (numero.includes("556781368080")) return;
-        if (numero.includes("5517997572900")) return;
+        if (numero === me) {
+            botLogger.debug("Ignorado: mensagem do próprio bot");
+            return;
+        }
+
+        // if (
+        //     numero.includes("5517997437646") ||
+        //     numero.includes("5567981368080") ||
+        //     numero.includes("556781368080") ||
+        //     numero.includes("5517997572900")
+        // ) {
+        //     botLogger.debug({ numero }, "Ignorado: número bloqueado");
+        //     return;
+        // }
 
         let texto = "";
 
-        if (msg.message.conversation || msg.message.extendedTextMessage?.text) {
+        if (textoMensagem) {
             texto = textoMensagem;
+            botLogger.debug({ tamanho: texto.length }, "Mensagem de texto recebida");
         } else if (msg.message.audioMessage) {
             const path = `./src/bots/baileys/audios/${numero}.ogg`;
+
+            botLogger.debug({ path }, "Baixando áudio");
             await baixarAudio(msg, path);
-            texto = await botFuncs.converterAudioEmTexto(path) || "";
-            botLogger.debug({ from: remoteJid, transcriptLength: texto.length }, "Audio transcrito");
+
+            texto = (await botFuncs.converterAudioEmTexto(path)) || "";
+
+            botLogger.debug(
+                { from: remoteJid, transcriptLength: texto.length },
+                "Áudio transcrito"
+            );
         }
 
         const timestamp = Number(msg.messageTimestamp);
         const agora = Math.floor(Date.now() / 1000);
-        if (agora - timestamp > 10) return;
+
+        if (agora - timestamp > 10) {
+            botLogger.debug({ timestamp, agora }, "Ignorado: mensagem antiga");
+            return;
+        }
 
         try {
-            const podeResponder = await funcoes.testMensagem(msg, numero, sock);
-            if (!podeResponder) return;
+            botLogger.debug({ numero }, "Validando se pode responder");
 
+            const podeResponder = await funcoes.testMensagem(msg, numero, sock);
+
+            if (!podeResponder) {
+                botLogger.debug("Bloqueado por regra de negócio");
+                return;
+            }
+
+            botLogger.debug({ numero, texto }, "Adicionando à fila");
             juntarMensagens(numero, texto);
 
             timeouts[numero] = setTimeout(async () => {
+                botLogger.debug({ numero }, "Processando fila de mensagens");
+
                 const mensagens = mensagensPendentes[numero];
+
                 delete mensagensPendentes[numero];
                 delete timeouts[numero];
 
-                const resposta = await botFuncs.responderPergunta(mensagens, numero, usuarioId, sock);
+                botLogger.debug({ mensagens }, "Mensagens agrupadas");
 
-                if (!resposta) return;
+                const resposta = await botFuncs.responderPergunta(
+                    mensagens,
+                    numero,
+                    usuarioId,
+                    sock
+                );
+
+                if (!resposta) {
+                    botLogger.warn({ numero }, "Sem resposta da IA");
+                    return;
+                }
 
                 const partes = resposta.includes("(SEPARAR)")
                     ? resposta.split("(SEPARAR)")
                     : [resposta];
 
+                botLogger.debug({ totalPartes: partes.length }, "Resposta dividida");
+
                 for (const parte of partes) {
+                    botLogger.debug({ parte }, "Enviando parte da resposta");
+
                     await sock.sendPresenceUpdate("composing", remoteJid);
                     await new Promise((resolve) => setTimeout(resolve, 4000));
-                    await sock.sendMessage(remoteJid, { text: `*BOT IDEALZINHO:*\n${parte}` });
+
+                    await sock.sendMessage(remoteJid, {
+                        text: `*BOT IDEALZINHO:*\n${parte}`,
+                    });
+
                     await sock.sendPresenceUpdate("paused", remoteJid);
                     await new Promise((resolve) => setTimeout(resolve, 20000));
                 }
+
+                botLogger.debug({ numero }, "Resposta finalizada");
             }, TEMPO_ESPERA);
+
+            botLogger.debug({ numero, tempo: TEMPO_ESPERA }, "Timeout agendado");
         } catch (err) {
-            botLogger.error({ err, from: remoteJid }, "Erro ao processar mensagem recebida");
+            botLogger.error(
+                { err, from: remoteJid, numero },
+                "Erro ao processar mensagem recebida"
+            );
         }
     });
 
