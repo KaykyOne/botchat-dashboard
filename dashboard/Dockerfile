@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
@@ -18,11 +18,14 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --production
+ENV NODE_ENV=production
+
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY public ./public
 
-EXPOSE 5001
+EXPOSE 3000
 
 CMD ["npm", "start"]

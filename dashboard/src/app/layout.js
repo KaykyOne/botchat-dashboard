@@ -6,7 +6,15 @@ export const metadata = {
   description: "Sistema de Atendimento de Leads com IA",
 }
 
+export const dynamic = "force-dynamic"
+
 export default function RootLayout({ children }) {
+  const publicEnv = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
+  }
+
   return (
     <html lang="pt-br">
       <head>
@@ -16,6 +24,11 @@ export default function RootLayout({ children }) {
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__BOTCHAT_PUBLIC_ENV__ = ${JSON.stringify(publicEnv)};`,
+          }}
+        />
       </head>
       <body>
         {children}

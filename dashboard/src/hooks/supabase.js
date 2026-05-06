@@ -1,12 +1,26 @@
 import { createClient } from "@supabase/supabase-js";
 
-const apiKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-const apiURL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
 let client;
+
+function getPublicEnv() {
+  if (typeof window !== "undefined" && window.__BOTCHAT_PUBLIC_ENV__) {
+    return window.__BOTCHAT_PUBLIC_ENV__;
+  }
+
+  return {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  };
+}
 
 function getSupabaseClient() {
   if (client) return client;
+
+  const {
+    NEXT_PUBLIC_SUPABASE_URL: apiURL,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: apiKey,
+  } = getPublicEnv();
 
   if (!apiURL || !apiKey) {
     if (typeof window === "undefined") {

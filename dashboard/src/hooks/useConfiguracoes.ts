@@ -3,6 +3,8 @@ import { useState } from "react";
 import { supabase } from "./supabase";
 import { toast } from "react-toastify";
 
+const BOT_API_BASE_PATH = "/apibot";
+
 const useQrCode = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [conectado, setConectado] = useState<boolean>(false);
@@ -58,7 +60,7 @@ const desconectar = async () => {
   toast.info("Desconectando, aguarde um momento...");
   const usuario_id = localStorage.getItem('id_do_usuario');
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/disconnect/${usuario_id}`);
+  const res = await fetch(`${BOT_API_BASE_PATH}/disconnect/${usuario_id}`);
   const response = await res.json();
   if (!res.ok) {
     toast.error("Erro ao desconectar!");
@@ -71,7 +73,7 @@ const desconectar = async () => {
 const conectar = async () => {
   const usuario_id = localStorage.getItem('id_do_usuario');
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/start/${usuario_id}`);
+  const res = await fetch(`${BOT_API_BASE_PATH}/start/${usuario_id}`);
   const response = await res.json();
   if (!res.ok) {
     toast.error("Erro ao solicitar nova conexao!");
