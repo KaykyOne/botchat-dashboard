@@ -21,6 +21,10 @@ const login = async (email: string, password: string, saveDados: boolean) => {
         return false;
     }
 
+    const isAdmin = email == process.env.NEXT_PUBLIC_EMAIL_ADMIN;
+
+    localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
+
     localStorage.setItem('id_do_usuario', data.id);
 
     if(!data.ativo) {

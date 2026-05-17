@@ -15,6 +15,10 @@ process.on("uncaughtException", (err) => {
     logger.fatal({ err }, "Uncaught exception");
 });
 
+app.get("/ping", (_req, res) => {
+    res.send("pong");
+});
+
 app.use(serverRouter);
 
 app.listen(PORT, "0.0.0.0", () => {

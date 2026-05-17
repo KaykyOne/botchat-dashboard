@@ -3,7 +3,6 @@
 const dev = process.env.NODE_ENV !== 'production';
 
 const nextConfig = {
-  output: 'export',
   basePath: dev ? '' : '/botchat-dashboard',
   assetPrefix: dev ? '' : '/botchat-dashboard',
   eslint: {

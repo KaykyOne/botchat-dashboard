@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npm run dev",
+    "start": "next start -H 0.0.0.0 -p 3000",
     "dev": "next dev",
     "build": "next build",
     "export": "next export",
@@ -21,6 +21,7 @@
     "react-qr-code": "^2.0.18",
     "react-toastify": "^11.0.5",
     "resize-observer-polyfill": "^1.5.1",
+    "serve": "^14.2.4",
     "simplebar": "^6.3.2",
     "tailwind-scrollbar-hide": "^4.0.0"
   },
